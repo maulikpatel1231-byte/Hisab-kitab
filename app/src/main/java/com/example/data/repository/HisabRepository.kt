@@ -1,24 +1,87 @@
 package com.example.data.repository
 
 import com.example.data.local.PersonDao
+import com.example.data.local.ProjectDao
 import com.example.data.local.TransactionDao
 import com.example.data.model.Person
 import com.example.data.model.PersonWithBalance
+import com.example.data.model.Project
 import com.example.data.model.Transaction
 import com.example.data.model.TransactionType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
 class HisabRepository(
+    private val projectDao: ProjectDao,
     private val personDao: PersonDao,
     private val transactionDao: TransactionDao
 ) {
+    val allProjects: Flow<List<Project>> = projectDao.getAllProjects()
     val allPersons: Flow<List<Person>> = personDao.getAllPersons()
     val allTransactions: Flow<List<Transaction>> = transactionDao.getAllTransactions()
 
-    // Reactive computation of persons with their balances
-    val personsWithBalances: Flow<List<PersonWithBalance>> =
-        combine(personDao.getAllPersons(), transactionDao.getAllTransactions()) { persons, transactions ->
+    suspend fun ensureDefaultProject(ownerEmail: String = "Maulikpatel1231@gmail.com"): Project {
+        val count = projectDao.getProjectsCount()
+        if (count == 0) {
+            val defaultProject = Project(
+                name = "General Khata (Mera Hisab)",
+                description = "Primary personal / business book",
+                ownerEmail = ownerEmail,
+                sharedEmails = "",
+                colorHex = "#0F766E"
+            )
+            val newId = projectDao.insertProject(defaultProject)
+            return defaultProject.copy(id = newId)
+        }
+        return projectDao.getProjectByIdDirect(1L) ?: Project(id = 1L, name = "General Khata (Mera Hisab)")
+    }
+
+    suspend fun insertProject(project: Project): Long {
+        return projectDao.insertProject(project)
+    }
+
+    suspend fun updateProject(project: Project) {
+        projectDao.updateProject(project)
+    }
+
+    suspend fun deleteProject(project: Project) {
+        transactionDao.deleteTransactionsByProject(project.id)
+        personDao.deletePersonsByProject(project.id)
+        projectDao.deleteProject(project)
+    }
+
+    suspend fun addSharedEmailToProject(projectId: Long, newEmail: String) {
+        val currentProject = projectDao.getProjectByIdDirect(projectId) ?: return
+        val currentList = currentProject.getSharedEmailList().toMutableList()
+        val trimmed = newEmail.trim().lowercase()
+        if (trimmed.isNotEmpty() && !currentList.contains(trimmed)) {
+            currentList.add(trimmed)
+            val updated = currentProject.copy(sharedEmails = currentList.joinToString(","))
+            projectDao.updateProject(updated)
+        }
+    }
+
+    suspend fun removeSharedEmailFromProject(projectId: Long, emailToRemove: String) {
+        val currentProject = projectDao.getProjectByIdDirect(projectId) ?: return
+        val currentList = currentProject.getSharedEmailList().toMutableList()
+        currentList.remove(emailToRemove.trim().lowercase())
+        val updated = currentProject.copy(sharedEmails = currentList.joinToString(","))
+        projectDao.updateProject(updated)
+    }
+
+    fun getPersonsForProject(projectId: Long): Flow<List<Person>> {
+        return personDao.getPersonsForProject(projectId)
+    }
+
+    fun getTransactionsForProject(projectId: Long): Flow<List<Transaction>> {
+        return transactionDao.getTransactionsForProject(projectId)
+    }
+
+    fun getPersonsWithBalancesForProject(projectId: Long): Flow<List<PersonWithBalance>> {
+        return combine(
+            personDao.getPersonsForProject(projectId),
+            transactionDao.getTransactionsForProject(projectId)
+        ) { persons, transactions ->
             persons.map { person ->
                 val personTxs = transactions.filter { it.personId == person.id }
                 var totalGiven = 0.0
@@ -47,6 +110,7 @@ class HisabRepository(
                 )
             }
         }
+    }
 
     fun getTransactionsForPerson(personId: Long): Flow<List<Transaction>> {
         return transactionDao.getTransactionsByPerson(personId)
@@ -59,7 +123,7 @@ class HisabRepository(
     suspend fun insertPerson(
         person: Person,
         openingBalance: Double = 0.0,
-        isReceivable: Boolean = true // true = Lena Hai (User gave), false = Dena Hai (User received)
+        isReceivable: Boolean = true
     ): Long {
         val newPersonId = personDao.insertPerson(person)
         if (openingBalance > 0.009) {
@@ -67,6 +131,7 @@ class HisabRepository(
             val note = if (isReceivable) "Opening Balance (Lena Hai)" else "Opening Balance (Dena Hai)"
             transactionDao.insertTransaction(
                 Transaction(
+                    projectId = person.projectId,
                     personId = newPersonId,
                     personName = person.name,
                     type = txType,

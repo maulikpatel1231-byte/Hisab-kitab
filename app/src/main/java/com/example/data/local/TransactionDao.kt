@@ -14,6 +14,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY timestamp DESC")
     fun getAllTransactions(): Flow<List<Transaction>>
 
+    @Query("SELECT * FROM transactions WHERE projectId = :projectId ORDER BY timestamp DESC")
+    fun getTransactionsForProject(projectId: Long): Flow<List<Transaction>>
+
     @Query("SELECT * FROM transactions WHERE personId = :personId ORDER BY timestamp DESC")
     fun getTransactionsByPerson(personId: Long): Flow<List<Transaction>>
 
@@ -37,4 +40,7 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE personId = :personId")
     suspend fun deleteTransactionsByPerson(personId: Long)
+
+    @Query("DELETE FROM transactions WHERE projectId = :projectId")
+    suspend fun deleteTransactionsByProject(projectId: Long)
 }

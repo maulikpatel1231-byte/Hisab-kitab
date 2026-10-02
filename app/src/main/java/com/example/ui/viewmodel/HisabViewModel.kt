@@ -1,45 +1,74 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
 import com.example.data.model.Person
 import com.example.data.model.PersonType
 import com.example.data.model.PersonWithBalance
+import com.example.data.model.Project
 import com.example.data.model.Transaction
 import com.example.data.model.TransactionType
+import com.example.data.model.UserSession
 import com.example.data.repository.HisabRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.Calendar
 
 data class DashboardSummary(
     val totalCashIn: Double = 0.0,
     val totalCashOut: Double = 0.0,
     val netCashBalance: Double = 0.0,
-    val totalReceivable: Double = 0.0, // Lena hai (market udhaar)
-    val totalPayable: Double = 0.0,    // Dena hai (market deydari)
+    val totalReceivable: Double = 0.0,
+    val totalPayable: Double = 0.0,
     val totalPersonsCount: Int = 0,
     val totalTransactionsCount: Int = 0
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HisabViewModel(application: Application) : AndroidViewModel(application) {
+    private val prefs = application.getSharedPreferences("hisab_prefs", Context.MODE_PRIVATE)
     private val database = AppDatabase.getDatabase(application)
-    private val repository = HisabRepository(database.personDao(), database.transactionDao())
+    private val repository = HisabRepository(
+        database.projectDao(),
+        database.personDao(),
+        database.transactionDao()
+    )
 
-    val allPersons: StateFlow<List<Person>> = repository.allPersons
+    // User Gmail Authentication Session
+    private val _userSession = MutableStateFlow(loadUserSession())
+    val userSession: StateFlow<UserSession> = _userSession.asStateFlow()
+
+    // Projects
+    val allProjects: StateFlow<List<Project>> = repository.allProjects
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val allTransactions: StateFlow<List<Transaction>> = repository.allTransactions
+    private val _activeProjectId = MutableStateFlow(prefs.getLong("active_project_id", 1L))
+    val activeProjectId: StateFlow<Long> = _activeProjectId.asStateFlow()
+
+    val activeProject: StateFlow<Project?> = combine(allProjects, _activeProjectId) { projects, currentId ->
+        projects.find { it.id == currentId } ?: projects.firstOrNull()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // Project-scoped data
+    val allPersons: StateFlow<List<Person>> = _activeProjectId
+        .flatMapLatest { pid -> repository.getPersonsForProject(pid) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val personsWithBalances: StateFlow<List<PersonWithBalance>> = repository.personsWithBalances
+    val allTransactions: StateFlow<List<Transaction>> = _activeProjectId
+        .flatMapLatest { pid -> repository.getTransactionsForProject(pid) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val personsWithBalances: StateFlow<List<PersonWithBalance>> = _activeProjectId
+        .flatMapLatest { pid -> repository.getPersonsWithBalancesForProject(pid) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // UI Navigation State
@@ -68,6 +97,18 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isAddTransactionDialogOpen = MutableStateFlow(false)
     val isAddTransactionDialogOpen: StateFlow<Boolean> = _isAddTransactionDialogOpen.asStateFlow()
+
+    private val _isAddProjectDialogOpen = MutableStateFlow(false)
+    val isAddProjectDialogOpen: StateFlow<Boolean> = _isAddProjectDialogOpen.asStateFlow()
+
+    private val _isShareProjectDialogOpen = MutableStateFlow(false)
+    val isShareProjectDialogOpen: StateFlow<Boolean> = _isShareProjectDialogOpen.asStateFlow()
+
+    private val _isGmailLoginDialogOpen = MutableStateFlow(false)
+    val isGmailLoginDialogOpen: StateFlow<Boolean> = _isGmailLoginDialogOpen.asStateFlow()
+
+    private val _isProjectSwitcherOpen = MutableStateFlow(false)
+    val isProjectSwitcherOpen: StateFlow<Boolean> = _isProjectSwitcherOpen.asStateFlow()
 
     private val _transactionDialogPreselectedPerson = MutableStateFlow<Person?>(null)
     val transactionDialogPreselectedPerson: StateFlow<Person?> = _transactionDialogPreselectedPerson.asStateFlow()
@@ -110,6 +151,97 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardSummary())
 
+    init {
+        viewModelScope.launch {
+            val user = _userSession.value
+            repository.ensureDefaultProject(user.email.ifEmpty { "Maulikpatel1231@gmail.com" })
+        }
+    }
+
+    private fun loadUserSession(): UserSession {
+        val isLoggedIn = prefs.getBoolean("user_logged_in", true)
+        val email = prefs.getString("user_email", "Maulikpatel1231@gmail.com") ?: "Maulikpatel1231@gmail.com"
+        val name = prefs.getString("user_name", "Maulik Patel") ?: "Maulik Patel"
+        return UserSession(email = email, displayName = name, isLoggedIn = isLoggedIn)
+    }
+
+    fun loginWithGmail(email: String, name: String) {
+        val cleanEmail = email.trim().lowercase()
+        val cleanName = name.trim().ifEmpty { cleanEmail.substringBefore("@") }
+        prefs.edit()
+            .putBoolean("user_logged_in", true)
+            .putString("user_email", cleanEmail)
+            .putString("user_name", cleanName)
+            .apply()
+        _userSession.value = UserSession(email = cleanEmail, displayName = cleanName, isLoggedIn = true)
+        _isGmailLoginDialogOpen.value = false
+    }
+
+    fun logoutGmail() {
+        prefs.edit()
+            .putBoolean("user_logged_in", false)
+            .apply()
+        _userSession.value = _userSession.value.copy(isLoggedIn = false)
+        _isGmailLoginDialogOpen.value = false
+    }
+
+    fun selectProject(projectId: Long) {
+        _activeProjectId.value = projectId
+        prefs.edit().putLong("active_project_id", projectId).apply()
+        _selectedPersonId.value = null
+        _isProjectSwitcherOpen.value = false
+    }
+
+    fun createProject(
+        name: String,
+        description: String,
+        colorHex: String,
+        initialSharedEmail: String = ""
+    ) {
+        viewModelScope.launch {
+            val ownerEmail = _userSession.value.email.ifEmpty { "Maulikpatel1231@gmail.com" }
+            val sharedList = if (initialSharedEmail.isNotBlank()) initialSharedEmail.trim().lowercase() else ""
+            val newProject = Project(
+                name = name.trim(),
+                description = description.trim(),
+                ownerEmail = ownerEmail,
+                sharedEmails = sharedList,
+                colorHex = colorHex.ifEmpty { "#0F766E" },
+                createdAt = System.currentTimeMillis()
+            )
+            val newId = repository.insertProject(newProject)
+            selectProject(newId)
+            closeAddProjectDialog()
+        }
+    }
+
+    fun deleteProject(project: Project) {
+        viewModelScope.launch {
+            repository.deleteProject(project)
+            val remaining = allProjects.value.filter { it.id != project.id }
+            if (remaining.isNotEmpty()) {
+                selectProject(remaining.first().id)
+            } else {
+                val def = repository.ensureDefaultProject(_userSession.value.email)
+                selectProject(def.id)
+            }
+        }
+    }
+
+    fun addSharedEmailToActiveProject(email: String) {
+        viewModelScope.launch {
+            val pid = _activeProjectId.value
+            repository.addSharedEmailToProject(pid, email)
+        }
+    }
+
+    fun removeSharedEmailFromActiveProject(email: String) {
+        viewModelScope.launch {
+            val pid = _activeProjectId.value
+            repository.removeSharedEmailFromProject(pid, email)
+        }
+    }
+
     fun setSelectedTab(tabIndex: Int) {
         _selectedTab.value = tabIndex
         if (_selectedPersonId.value != null) {
@@ -149,6 +281,38 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
         _isAddPersonDialogOpen.value = false
     }
 
+    fun openAddProjectDialog() {
+        _isAddProjectDialogOpen.value = true
+    }
+
+    fun closeAddProjectDialog() {
+        _isAddProjectDialogOpen.value = false
+    }
+
+    fun openShareProjectDialog() {
+        _isShareProjectDialogOpen.value = true
+    }
+
+    fun closeShareProjectDialog() {
+        _isShareProjectDialogOpen.value = false
+    }
+
+    fun openGmailLoginDialog() {
+        _isGmailLoginDialogOpen.value = true
+    }
+
+    fun closeGmailLoginDialog() {
+        _isGmailLoginDialogOpen.value = false
+    }
+
+    fun openProjectSwitcher() {
+        _isProjectSwitcherOpen.value = true
+    }
+
+    fun closeProjectSwitcher() {
+        _isProjectSwitcherOpen.value = false
+    }
+
     fun openAddTransactionDialog(
         person: Person? = null,
         type: TransactionType? = null
@@ -174,6 +338,7 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch {
             val person = Person(
+                projectId = _activeProjectId.value,
                 name = name.trim(),
                 phone = phone.trim(),
                 type = type,
@@ -212,6 +377,7 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch {
             val tx = Transaction(
+                projectId = _activeProjectId.value,
                 personId = personId,
                 personName = personName,
                 type = type.name,
@@ -234,21 +400,27 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
 
     fun seedSampleData() {
         viewModelScope.launch {
-            // Check if already seeded to avoid double seeding
             if (allPersons.value.isNotEmpty()) return@launch
 
+            val currentProjectId = _activeProjectId.value
             val now = System.currentTimeMillis()
             val dayMillis = 24 * 60 * 60 * 1000L
 
             // 1. Ramesh Kumar (Grahak / Customer - owes money)
             val p1Id = repository.insertPerson(
-                Person(name = "Ramesh Kumar", phone = "+91 98765 43210", type = PersonType.CUSTOMER.name, notes = "Regular grocery buyer"),
+                Person(
+                    projectId = currentProjectId,
+                    name = "Ramesh Kumar",
+                    phone = "+91 98765 43210",
+                    type = PersonType.CUSTOMER.name,
+                    notes = "Regular grocery buyer"
+                ),
                 openingBalance = 1500.0,
                 isReceivable = true
             )
-            // Add a repayment from Ramesh
             repository.insertTransaction(
                 Transaction(
+                    projectId = currentProjectId,
                     personId = p1Id,
                     personName = "Ramesh Kumar",
                     type = TransactionType.INCOMING.name,
@@ -262,12 +434,19 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
 
             // 2. Sharma Ji Wholesale (Supplier - we owe him)
             val p2Id = repository.insertPerson(
-                Person(name = "Sharma Ji Wholesale", phone = "+91 91234 56789", type = PersonType.SUPPLIER.name, notes = "Goods vendor"),
+                Person(
+                    projectId = currentProjectId,
+                    name = "Sharma Ji Wholesale",
+                    phone = "+91 91234 56789",
+                    type = PersonType.SUPPLIER.name,
+                    notes = "Goods vendor"
+                ),
                 openingBalance = 3200.0,
-                isReceivable = false // We owe him
+                isReceivable = false
             )
             repository.insertTransaction(
                 Transaction(
+                    projectId = currentProjectId,
                     personId = p2Id,
                     personName = "Sharma Ji Wholesale",
                     type = TransactionType.OUTGOING.name,
@@ -280,15 +459,22 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             // 3. Amit Verma (Friend)
-            val p3Id = repository.insertPerson(
-                Person(name = "Amit Verma", phone = "+91 99887 76655", type = PersonType.FRIEND.name, notes = "College friend"),
+            repository.insertPerson(
+                Person(
+                    projectId = currentProjectId,
+                    name = "Amit Verma",
+                    phone = "+91 99887 76655",
+                    type = PersonType.FRIEND.name,
+                    notes = "College friend"
+                ),
                 openingBalance = 2000.0,
                 isReceivable = true
             )
 
-            // General cash in & out (sales & expenses)
+            // General cash in & out
             repository.insertTransaction(
                 Transaction(
+                    projectId = currentProjectId,
                     personId = null,
                     personName = null,
                     type = TransactionType.INCOMING.name,
@@ -301,6 +487,7 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
             )
             repository.insertTransaction(
                 Transaction(
+                    projectId = currentProjectId,
                     personId = null,
                     personName = null,
                     type = TransactionType.OUTGOING.name,
@@ -309,18 +496,6 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
                     paymentMode = "UPI",
                     note = "Monthly power bill paid",
                     timestamp = now - (dayMillis * 4)
-                )
-            )
-            repository.insertTransaction(
-                Transaction(
-                    personId = null,
-                    personName = null,
-                    type = TransactionType.OUTGOING.name,
-                    amount = 350.0,
-                    category = "Tea & Snacks",
-                    paymentMode = "Cash",
-                    note = "Office tea & refreshments",
-                    timestamp = now - (dayMillis * 1)
                 )
             )
         }

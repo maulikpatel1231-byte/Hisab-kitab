@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +21,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -42,8 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PersonWithBalance
+import com.example.data.model.Project
 import com.example.data.model.Transaction
-import com.example.data.model.TransactionType
 import com.example.ui.components.PersonItemCard
 import com.example.ui.components.SummaryCard
 import com.example.ui.components.TransactionItemCard
@@ -54,6 +61,7 @@ import com.example.ui.viewmodel.DashboardSummary
 @Composable
 fun DashboardScreen(
     summary: DashboardSummary,
+    activeProject: Project?,
     persons: List<PersonWithBalance>,
     recentTransactions: List<Transaction>,
     onAddCashIn: () -> Unit,
@@ -64,21 +72,168 @@ fun DashboardScreen(
     onViewAllCashbook: () -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     onSeedSampleData: () -> Unit,
+    onSwitchProject: () -> Unit,
+    onShareProject: () -> Unit,
+    onAddNewProject: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val defaultColor = MaterialTheme.colorScheme.primary
+    val projectColor = androidx.compose.runtime.remember(activeProject?.colorHex, defaultColor) {
+        try {
+            if (activeProject != null && activeProject.colorHex.isNotBlank()) {
+                Color(android.graphics.Color.parseColor(activeProject.colorHex))
+            } else {
+                defaultColor
+            }
+        } catch (e: Exception) {
+            defaultColor
+        }
+    }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .testTag("dashboard_screen"),
-        contentPadding = PaddingValues(bottom = 90.dp, top = 12.dp, start = 16.dp, end = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(bottom = 90.dp, top = 8.dp, start = 16.dp, end = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 1. Overview Financial Balance Card
+        // Project Selector & Gmail Sharing Banner
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Project pill
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onSwitchProject() }
+                                .background(projectColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(projectColor)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = activeProject?.name ?: "Main Project",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = projectColor
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Switch project",
+                                tint = projectColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        // Right actions: Share with Gmail & + New Project
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // Share with Gmail button
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { onShareProject() }
+                                    .testTag("btn_share_gmail_banner"),
+                                color = Color(0xFFEA4335).copy(alpha = 0.15f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Email,
+                                        contentDescription = "Share Gmail",
+                                        tint = Color(0xFFEA4335),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Share Gmail",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFEA4335)
+                                        )
+                                    )
+                                }
+                            }
+
+                            // + Project
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { onAddNewProject() }
+                                    .testTag("btn_add_project_banner"),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Add project",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(
+                                        text = "Project",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Shared members indicator if any
+                    val sharedEmails = activeProject?.getSharedEmailList() ?: emptyList()
+                    if (sharedEmails.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Shared with: ${sharedEmails.joinToString(", ")}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Financial Balance Card
         item {
             SummaryCard(summary = summary)
         }
 
-        // 2. Quick Action Buttons
+        // Quick Action Buttons
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -187,7 +342,7 @@ fun DashboardScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Abhi koi hisab darj nahi hai. Aap apna naya vyakti/khata jod sakte hain ya example data load karke test kar sakte hain.",
+                            text = "Abhi is project me koi hisab darj nahi hai. Naya vyakti/khata jodein ya sample entries load karein.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                             lineHeight = 18.sp
@@ -205,7 +360,7 @@ fun DashboardScreen(
             }
         }
 
-        // 3. Persons with Pending Balances Section
+        // Persons with Pending Balances Section
         val pendingPersons = persons.filter { !it.isSettled }.take(3)
         if (pendingPersons.isNotEmpty()) {
             item {
@@ -237,7 +392,7 @@ fun DashboardScreen(
             }
         }
 
-        // 4. Recent Transactions Section
+        // Recent Transactions Section
         val recentList = recentTransactions.take(5)
         if (recentList.isNotEmpty()) {
             item {

@@ -14,6 +14,9 @@ interface PersonDao {
     @Query("SELECT * FROM persons ORDER BY name ASC")
     fun getAllPersons(): Flow<List<Person>>
 
+    @Query("SELECT * FROM persons WHERE projectId = :projectId ORDER BY name ASC")
+    fun getPersonsForProject(projectId: Long): Flow<List<Person>>
+
     @Query("SELECT * FROM persons WHERE id = :id LIMIT 1")
     fun getPersonById(id: Long): Flow<Person?>
 
@@ -28,4 +31,7 @@ interface PersonDao {
 
     @Query("DELETE FROM persons WHERE id = :id")
     suspend fun deletePersonById(id: Long)
+
+    @Query("DELETE FROM persons WHERE projectId = :projectId")
+    suspend fun deletePersonsByProject(projectId: Long)
 }

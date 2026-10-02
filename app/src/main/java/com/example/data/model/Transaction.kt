@@ -1,17 +1,21 @@
 package com.example.data.model
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "transactions",
-    indices = [Index(value = ["personId"]), Index(value = ["timestamp"])]
+    indices = [
+        Index(value = ["projectId"]),
+        Index(value = ["personId"]),
+        Index(value = ["timestamp"])
+    ]
 )
 data class Transaction(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0L,
+    val projectId: Long = 1L,
     val personId: Long? = null,
     val personName: String? = null,
     val type: String, // TransactionType.INCOMING.name or TransactionType.OUTGOING.name
