@@ -1,0 +1,6 @@
+{
+  "name": "Hisab Kitab",
+  "description": "Smart Khata and Cashbook app for tracking incoming and outgoing money with person-wise ledger accounts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
