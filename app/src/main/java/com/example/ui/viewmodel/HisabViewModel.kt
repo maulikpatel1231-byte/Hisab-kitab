@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
+import com.example.data.model.EmailGroup
 import com.example.data.model.Person
 import com.example.data.model.PersonType
 import com.example.data.model.PersonWithBalance
@@ -13,6 +14,7 @@ import com.example.data.model.Transaction
 import com.example.data.model.TransactionType
 import com.example.data.model.UserSession
 import com.example.data.repository.HisabRepository
+import com.example.ui.util.AppLanguage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,8 +42,16 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = HisabRepository(
         database.projectDao(),
         database.personDao(),
-        database.transactionDao()
+        database.transactionDao(),
+        database.emailGroupDao()
     )
+
+    // Language & Onboarding State
+    private val _currentLanguage = MutableStateFlow(loadLanguage())
+    val currentLanguage: StateFlow<AppLanguage> = _currentLanguage.asStateFlow()
+
+    private val _isOnboardingCompleted = MutableStateFlow(prefs.getBoolean("onboarding_completed", false))
+    val isOnboardingCompleted: StateFlow<Boolean> = _isOnboardingCompleted.asStateFlow()
 
     // User Gmail Authentication Session
     private val _userSession = MutableStateFlow(loadUserSession())
@@ -57,6 +67,10 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
     val activeProject: StateFlow<Project?> = combine(allProjects, _activeProjectId) { projects, currentId ->
         projects.find { it.id == currentId } ?: projects.firstOrNull()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // Email Groups
+    val allEmailGroups: StateFlow<List<EmailGroup>> = repository.allEmailGroups
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Project-scoped data
     val allPersons: StateFlow<List<Person>> = _activeProjectId
@@ -82,13 +96,13 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _personFilter = MutableStateFlow("ALL") // ALL, RECEIVABLE, PAYABLE, SETTLED
+    private val _personFilter = MutableStateFlow("ALL")
     val personFilter: StateFlow<String> = _personFilter.asStateFlow()
 
-    private val _cashbookTypeFilter = MutableStateFlow("ALL") // ALL, INCOMING, OUTGOING
+    private val _cashbookTypeFilter = MutableStateFlow("ALL")
     val cashbookTypeFilter: StateFlow<String> = _cashbookTypeFilter.asStateFlow()
 
-    private val _cashbookDateFilter = MutableStateFlow("ALL") // ALL, TODAY, THIS_WEEK, THIS_MONTH
+    private val _cashbookDateFilter = MutableStateFlow("ALL")
     val cashbookDateFilter: StateFlow<String> = _cashbookDateFilter.asStateFlow()
 
     // Dialog & Action States
@@ -109,6 +123,12 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isProjectSwitcherOpen = MutableStateFlow(false)
     val isProjectSwitcherOpen: StateFlow<Boolean> = _isProjectSwitcherOpen.asStateFlow()
+
+    private val _isEmailGroupDialogOpen = MutableStateFlow(false)
+    val isEmailGroupDialogOpen: StateFlow<Boolean> = _isEmailGroupDialogOpen.asStateFlow()
+
+    private val _isLanguageDialogOpen = MutableStateFlow(false)
+    val isLanguageDialogOpen: StateFlow<Boolean> = _isLanguageDialogOpen.asStateFlow()
 
     private val _transactionDialogPreselectedPerson = MutableStateFlow<Person?>(null)
     val transactionDialogPreselectedPerson: StateFlow<Person?> = _transactionDialogPreselectedPerson.asStateFlow()
@@ -158,6 +178,26 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun loadLanguage(): AppLanguage {
+        val code = prefs.getString("selected_language", AppLanguage.HINDI.code) ?: AppLanguage.HINDI.code
+        return AppLanguage.values().find { it.code == code } ?: AppLanguage.HINDI
+    }
+
+    fun setLanguage(language: AppLanguage) {
+        prefs.edit().putString("selected_language", language.code).apply()
+        _currentLanguage.value = language
+        _isLanguageDialogOpen.value = false
+    }
+
+    fun completeOnboarding(language: AppLanguage, email: String, name: String) {
+        setLanguage(language)
+        if (email.isNotBlank()) {
+            loginWithGmail(email, name)
+        }
+        prefs.edit().putBoolean("onboarding_completed", true).apply()
+        _isOnboardingCompleted.value = true
+    }
+
     private fun loadUserSession(): UserSession {
         val isLoggedIn = prefs.getBoolean("user_logged_in", true)
         val email = prefs.getString("user_email", "Maulikpatel1231@gmail.com") ?: "Maulikpatel1231@gmail.com"
@@ -178,9 +218,7 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun logoutGmail() {
-        prefs.edit()
-            .putBoolean("user_logged_in", false)
-            .apply()
+        prefs.edit().putBoolean("user_logged_in", false).apply()
         _userSession.value = _userSession.value.copy(isLoggedIn = false)
         _isGmailLoginDialogOpen.value = false
     }
@@ -239,6 +277,19 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val pid = _activeProjectId.value
             repository.removeSharedEmailFromProject(pid, email)
+        }
+    }
+
+    // Email Groups Management
+    fun createEmailGroup(name: String, emails: String) {
+        viewModelScope.launch {
+            repository.insertEmailGroup(name, emails)
+        }
+    }
+
+    fun deleteEmailGroup(group: EmailGroup) {
+        viewModelScope.launch {
+            repository.deleteEmailGroup(group)
         }
     }
 
@@ -311,6 +362,22 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
 
     fun closeProjectSwitcher() {
         _isProjectSwitcherOpen.value = false
+    }
+
+    fun openEmailGroupDialog() {
+        _isEmailGroupDialogOpen.value = true
+    }
+
+    fun closeEmailGroupDialog() {
+        _isEmailGroupDialogOpen.value = false
+    }
+
+    fun openLanguageDialog() {
+        _isLanguageDialogOpen.value = true
+    }
+
+    fun closeLanguageDialog() {
+        _isLanguageDialogOpen.value = false
     }
 
     fun openAddTransactionDialog(
@@ -406,7 +473,7 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
             val now = System.currentTimeMillis()
             val dayMillis = 24 * 60 * 60 * 1000L
 
-            // 1. Ramesh Kumar (Grahak / Customer - owes money)
+            // 1. Ramesh Kumar (Customer)
             val p1Id = repository.insertPerson(
                 Person(
                     projectId = currentProjectId,
@@ -432,7 +499,7 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
 
-            // 2. Sharma Ji Wholesale (Supplier - we owe him)
+            // 2. Sharma Ji Wholesale (Supplier)
             val p2Id = repository.insertPerson(
                 Person(
                     projectId = currentProjectId,
@@ -471,7 +538,7 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
                 isReceivable = true
             )
 
-            // General cash in & out
+            // General cash flow entries
             repository.insertTransaction(
                 Transaction(
                     projectId = currentProjectId,

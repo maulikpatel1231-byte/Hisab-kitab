@@ -1,0 +1,131 @@
+package com.example.ui.util
+
+enum class AppLanguage(val code: String, val displayName: String, val nativeName: String, val flag: String) {
+    HINDI("hi", "Hindi", "हिन्दी", "🇮🇳"),
+    ENGLISH("en", "English", "English", "🌐"),
+    GUJARATI("gu", "Gujarati", "ગુજરાતી", "🇮🇳")
+}
+
+data class AppStrings(
+    val appName: String,
+    val welcomeTitle: String,
+    val welcomeSubtitle: String,
+    val selectLanguage: String,
+    val languageFixedNote: String,
+    val tabHome: String,
+    val tabParties: String,
+    val tabCashbook: String,
+    val tabReports: String,
+    val netBalance: String,
+    val cashIn: String,
+    val cashOut: String,
+    val receivable: String,
+    val payable: String,
+    val btnCashIn: String,
+    val btnCashOut: String,
+    val btnAddPerson: String,
+    val btnAddProject: String,
+    val btnShareEmail: String,
+    val btnSwitchProject: String,
+    val emailLoginTitle: String,
+    val emailLoginSubtitle: String,
+    val continueBtn: String,
+    val skipBtn: String,
+    val emailGroupsTitle: String,
+    val createGroupBtn: String,
+    val searchPlaceholder: String
+)
+
+object LocalizationManager {
+    fun getStrings(language: AppLanguage): AppStrings {
+        return when (language) {
+            AppLanguage.HINDI -> AppStrings(
+                appName = "Daily Book (डेली बुक)",
+                welcomeTitle = "Daily Book में स्वागत है",
+                welcomeSubtitle = "दैनिक आय-व्यय, उधारी और पार्टी खातों का सबसे आसान डेली हिसाब",
+                selectLanguage = "अपनी पसंदीदा भाषा चुनें",
+                languageFixedNote = "यह भाषा बाद में भी सेटिंग्स से बदली जा सकती है",
+                tabHome = "होम",
+                tabParties = "खातेदार",
+                tabCashbook = "रोकड़ बही",
+                tabReports = "रिपोर्ट्स",
+                netBalance = "नेट कैश बैलेंस (हाथ में)",
+                cashIn = "आया (Cash In)",
+                cashOut = "गया (Cash Out)",
+                receivable = "मार्केट लेना है (उधारी)",
+                payable = "मार्केट देना है (देयदारी)",
+                btnCashIn = "+ आया (Cash In)",
+                btnCashOut = "- गया (Cash Out)",
+                btnAddPerson = "+ व्यक्ति",
+                btnAddProject = "+ प्रोजेक्ट",
+                btnShareEmail = "ईमेल शेयर",
+                btnSwitchProject = "प्रोजेक्ट बदलें",
+                emailLoginTitle = "ईमेल / Gmail लॉगिन",
+                emailLoginSubtitle = "डेटा बैकअप और ग्रुप शेयरिंग के लिए अपनी ईमेल जोड़ें",
+                continueBtn = "आगे बढ़ें (Continue)",
+                skipBtn = "अभी छोड़ें (Guest Mode)",
+                emailGroupsTitle = "ईमेल ग्रुप्स (Email Groups)",
+                createGroupBtn = "+ नया ग्रुप बनाएं",
+                searchPlaceholder = "नाम, फोन या नोट से खोजें..."
+            )
+            AppLanguage.GUJARATI -> AppStrings(
+                appName = "Daily Book (ડેઇલી બુક)",
+                welcomeTitle = "Daily Book માં સ્વાગત છે",
+                welcomeSubtitle = "દૈનિક આવક-જાવક, ઉધાર અને પાર્ટી ખાતાઓનો સૌથી સરળ હિસાબ",
+                selectLanguage = "તમારી ભાષા પસંદ કરો",
+                languageFixedNote = "આ ભાષા પછીથી પણ સેટિંગ્સમાંથી બદલી શકાય છે",
+                tabHome = "હોમ",
+                tabParties = "ખાતેદારો",
+                tabCashbook = "રોકડમેળ",
+                tabReports = "અહેવાલ",
+                netBalance = "ચોખ્ખી સિલક (હાથ પર)",
+                cashIn = "આવક (Cash In)",
+                cashOut = "જાવક (Cash Out)",
+                receivable = "લેવાના નાણાં (ઉઘરાણી)",
+                payable = "ચૂકવવાના નાણાં (દેવું)",
+                btnCashIn = "+ આવક (Cash In)",
+                btnCashOut = "- જાવક (Cash Out)",
+                btnAddPerson = "+ વ્યક્તિ",
+                btnAddProject = "+ પ્રોજેક્ટ",
+                btnShareEmail = "ઇમેઇલ શેર",
+                btnSwitchProject = "પ્રોજેક્ટ બદલો",
+                emailLoginTitle = "ઇમેઇલ / Gmail લોગિન",
+                emailLoginSubtitle = "ડેટા બેકઅપ અને ગ્રૂપ શેરિંગ માટે તમારું ઇમેઇલ જોડો",
+                continueBtn = "આગળ વધો (Continue)",
+                skipBtn = "હમણાં સ્કીપ કરો (Guest Mode)",
+                emailGroupsTitle = "ઇમેઇલ ગ્રૂપ્સ (Email Groups)",
+                createGroupBtn = "+ નવું ગ્રૂપ બનાવો",
+                searchPlaceholder = "નામ, ફોન કે નોટથી શોધો..."
+            )
+            AppLanguage.ENGLISH -> AppStrings(
+                appName = "Daily Book",
+                welcomeTitle = "Welcome to Daily Book",
+                welcomeSubtitle = "Smart daily ledger, cashbook and expense tracking book",
+                selectLanguage = "Select Your Preferred Language",
+                languageFixedNote = "This language will be saved and can be changed anytime in settings",
+                tabHome = "Home",
+                tabParties = "Parties",
+                tabCashbook = "Cashbook",
+                tabReports = "Reports",
+                netBalance = "Net Cash Balance (In Hand)",
+                cashIn = "Cash In",
+                cashOut = "Cash Out",
+                receivable = "To Collect (Receivable)",
+                payable = "To Pay (Payable)",
+                btnCashIn = "+ Cash In",
+                btnCashOut = "- Cash Out",
+                btnAddPerson = "+ Person",
+                btnAddProject = "+ Project",
+                btnShareEmail = "Share Email",
+                btnSwitchProject = "Switch Project",
+                emailLoginTitle = "Email / Gmail Sign-in",
+                emailLoginSubtitle = "Connect your email for cloud backup and team/group sharing",
+                continueBtn = "Continue",
+                skipBtn = "Skip for now (Guest Mode)",
+                emailGroupsTitle = "Email Groups",
+                createGroupBtn = "+ Create Email Group",
+                searchPlaceholder = "Search by name, phone or note..."
+            )
+        }
+    }
+}

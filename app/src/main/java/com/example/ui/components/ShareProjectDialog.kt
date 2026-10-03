@@ -25,20 +25,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,12 +63,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.EmailGroup
 import com.example.data.model.PersonWithBalance
 import com.example.data.model.Project
 import com.example.data.model.Transaction
 import com.example.data.model.TransactionType
-import com.example.ui.theme.MoneyGreen
-import com.example.ui.theme.MoneyRed
 import com.example.ui.util.FormatUtils
 import kotlin.math.abs
 
@@ -79,21 +77,24 @@ fun ShareProjectDialog(
     project: Project,
     persons: List<PersonWithBalance>,
     transactions: List<Transaction>,
+    emailGroups: List<EmailGroup>,
     onDismiss: () -> Unit,
     onAddSharedEmail: (String) -> Unit,
-    onRemoveSharedEmail: (String) -> Unit
+    onRemoveSharedEmail: (String) -> Unit,
+    onOpenGroupManager: () -> Unit
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    var shareMode by remember { mutableStateOf("PARTICULAR") } // "PARTICULAR" or "GROUP"
     var targetEmail by remember { mutableStateOf("") }
+    var selectedGroup by remember { mutableStateOf(emailGroups.firstOrNull()) }
     var emailError by remember { mutableStateOf(false) }
 
     val sharedList = project.getSharedEmailList()
 
-    // Build the formatted report text
-    fun generateReportText(reportType: String): String {
+    fun generateReportText(): String {
         return buildString {
-            appendLine("📋 *HISAB KITAB PROJECT STATEMENT* 📋")
+            appendLine("📋 *DAILY BOOK PROJECT STATEMENT* 📋")
             appendLine("Project: ${project.name}")
             if (project.description.isNotBlank()) appendLine("Description: ${project.description}")
             appendLine("Owner: ${project.ownerEmail}")
@@ -128,7 +129,7 @@ fun ShareProjectDialog(
                 }
             }
 
-            appendLine("\n📝 *RECENT TRANSACTIONS (CASH FLOW):*")
+            appendLine("\n📝 *RECENT TRANSACTIONS:*")
             if (transactions.isEmpty()) {
                 appendLine("No entries recorded.")
             } else {
@@ -141,34 +142,34 @@ fun ShareProjectDialog(
             }
 
             appendLine("\n=========================================")
-            appendLine("Shared via Hisab Kitab Android App")
+            appendLine("Shared via Daily Book Android App")
         }
     }
 
-    fun sendToGmail(email: String) {
-        val cleanEmail = email.trim()
-        if (cleanEmail.isBlank() || !cleanEmail.contains("@")) {
+    fun sendToEmails(emails: List<String>) {
+        val validEmails = emails.map { it.trim().lowercase() }.filter { it.isNotEmpty() && it.contains("@") }
+        if (validEmails.isEmpty()) {
             emailError = true
             return
         }
 
-        onAddSharedEmail(cleanEmail)
+        // Add first email to project shared list
+        onAddSharedEmail(validEmails.first())
 
-        val reportBody = generateReportText("FULL")
-        val subject = "[Hisab Kitab] ${project.name} - Statement & Data"
+        val reportBody = generateReportText()
+        val subject = "[Daily Book] ${project.name} - Statement & Data"
 
-        // Use Intent.ACTION_SENDTO with mailto: to directly launch Gmail or user's email client
         val mailIntent = Intent(Intent.ACTION_SENDTO).apply {
-            data = Uri.parse("mailto:$cleanEmail")
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(cleanEmail))
+            data = Uri.parse("mailto:${validEmails.first()}")
+            putExtra(Intent.EXTRA_EMAIL, validEmails.toTypedArray())
             putExtra(Intent.EXTRA_SUBJECT, subject)
             putExtra(Intent.EXTRA_TEXT, reportBody)
         }
 
         try {
-            context.startActivity(Intent.createChooser(mailIntent, "Send Hisab to $cleanEmail"))
+            context.startActivity(Intent.createChooser(mailIntent, "Send Hisab to ${validEmails.joinToString(", ")}"))
         } catch (e: Exception) {
-            Toast.makeText(context, "Could not open email app. Report copied to clipboard!", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Report copied to clipboard!", Toast.LENGTH_LONG).show()
             clipboardManager.setText(AnnotatedString(reportBody))
         }
     }
@@ -194,7 +195,7 @@ fun ShareProjectDialog(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "Share with Gmail ID",
+                        text = "Share Project Statement",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
@@ -212,110 +213,221 @@ fun ShareProjectDialog(
                     .verticalScroll(rememberScrollState())
                     .padding(vertical = 4.dp)
             ) {
-                // Previously shared Gmail IDs
-                if (sharedList.isNotEmpty()) {
-                    Text(
-                        text = "Collaborator Gmail IDs (Pehle se jude hue):",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                // Segmented Toggle: Particular Email vs Email Group
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Particular Email
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { shareMode = "PARTICULAR" }
+                            .testTag("toggle_share_particular"),
+                        color = if (shareMode == "PARTICULAR") MaterialTheme.colorScheme.surface else Color.Transparent
                     ) {
-                        sharedList.forEach { email ->
+                        Row(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Single Email",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (shareMode == "PARTICULAR") FontWeight.Bold else FontWeight.Normal
+                                )
+                            )
+                        }
+                    }
+
+                    // Email Group
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { shareMode = "GROUP" }
+                            .testTag("toggle_share_group"),
+                        color = if (shareMode == "GROUP") MaterialTheme.colorScheme.surface else Color.Transparent
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.Group, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Email Group",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (shareMode == "GROUP") FontWeight.Bold else FontWeight.Normal
+                                )
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (shareMode == "PARTICULAR") {
+                    // Previously shared list
+                    if (sharedList.isNotEmpty()) {
+                        Text(
+                            text = "Saved Collaborators:",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            sharedList.forEach { email ->
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = email,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.clickable { targetEmail = email }
+                                        )
+                                        IconButton(
+                                            onClick = { onRemoveSharedEmail(email) },
+                                            modifier = Modifier.size(20.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(12.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    // Input particular email
+                    OutlinedTextField(
+                        value = targetEmail,
+                        onValueChange = {
+                            targetEmail = it
+                            emailError = false
+                        },
+                        label = { Text("Enter Particular Gmail ID *") },
+                        placeholder = { Text("e.g. partner@gmail.com") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Email, contentDescription = null)
+                        },
+                        isError = emailError,
+                        supportingText = {
+                            if (emailError) Text("Please enter a valid Gmail ID")
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("target_gmail_input"),
+                        singleLine = true
+                    )
+                } else {
+                    // GROUP MODE
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Select Email Group:",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        TextButton(onClick = onOpenGroupManager) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text("Manage Groups", fontSize = 12.sp)
+                        }
+                    }
+
+                    if (emailGroups.isEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "No email groups created yet.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Button(onClick = onOpenGroupManager) {
+                                    Text("+ Create New Group")
+                                }
+                            }
+                        }
+                    } else {
+                        emailGroups.forEach { group ->
+                            val isChosen = selectedGroup?.id == group.id
                             Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.clip(RoundedCornerShape(20.dp))
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(
+                                        width = if (isChosen) 2.dp else 1.dp,
+                                        color = if (isChosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable { selectedGroup = group },
+                                color = if (isChosen) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                else MaterialTheme.colorScheme.surface
                             ) {
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 4.dp, bottom = 4.dp)
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = email,
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                        modifier = Modifier.clickable { targetEmail = email }
-                                    )
-                                    IconButton(
-                                        onClick = { onRemoveSharedEmail(email) },
-                                        modifier = Modifier.size(22.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Remove",
-                                            modifier = Modifier.size(14.dp)
+                                        Icon(Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(group.name, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                                        val emails = group.getEmailList()
+                                        Text(
+                                            text = "${emails.size} email(s): ${emails.joinToString(", ")}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
                                         )
                                     }
                                 }
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(14.dp))
                 }
 
-                // Enter particular Gmail ID
-                Text(
-                    text = "Particular Gmail ID Par Data Bhejein:",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                OutlinedTextField(
-                    value = targetEmail,
-                    onValueChange = {
-                        targetEmail = it
-                        emailError = false
-                    },
-                    label = { Text("Particular Gmail ID *") },
-                    placeholder = { Text("e.g. partner@gmail.com") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Email, contentDescription = null)
-                    },
-                    isError = emailError,
-                    supportingText = {
-                        if (emailError) Text("Please enter a valid Gmail ID")
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("target_gmail_input"),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Preview summary card
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "Included in this Gmail Share:",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "✓ Full Financial Cash In & Cash Out balance\n✓ All ${persons.size} Parties (Lena/Dena Hai accounts)\n✓ All ${transactions.size} ledger transactions with notes",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 18.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Quick Copy option
+                // Copy to clipboard option
                 OutlinedButton(
                     onClick = {
-                        val report = generateReportText("FULL")
+                        val report = generateReportText()
                         clipboardManager.setText(AnnotatedString(report))
-                        Toast.makeText(context, "Full Project statement copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Project report copied to clipboard!", Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -327,13 +439,27 @@ fun ShareProjectDialog(
         },
         confirmButton = {
             Button(
-                onClick = { sendToGmail(targetEmail) },
+                onClick = {
+                    if (shareMode == "PARTICULAR") {
+                        sendToEmails(listOf(targetEmail))
+                    } else {
+                        val groupEmails = selectedGroup?.getEmailList() ?: emptyList()
+                        if (groupEmails.isEmpty()) {
+                            Toast.makeText(context, "Please select a group with member emails", Toast.LENGTH_SHORT).show()
+                        } else {
+                            sendToEmails(groupEmails)
+                        }
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA4335)),
                 modifier = Modifier.testTag("btn_send_gmail_data")
             ) {
                 Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Send to Gmail", color = Color.White)
+                Text(
+                    text = if (shareMode == "GROUP") "Send to Group" else "Send via Gmail",
+                    color = Color.White
+                )
             }
         },
         dismissButton = {

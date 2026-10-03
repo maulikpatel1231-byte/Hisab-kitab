@@ -1,6 +1,6 @@
 {
-  "name": "Hisab Kitab",
-  "description": "Smart Khata and Cashbook app for tracking incoming and outgoing money with person-wise ledger accounts.",
+  "name": "Daily Book",
+  "description": "Smart daily khata, cashbook, and personal expense tracking book with multi-project and team sharing.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

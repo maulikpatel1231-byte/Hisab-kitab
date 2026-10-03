@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
@@ -56,14 +57,18 @@ import com.example.data.model.TransactionType
 import com.example.ui.components.AddPersonDialog
 import com.example.ui.components.AddProjectDialog
 import com.example.ui.components.AddTransactionDialog
+import com.example.ui.components.EmailGroupDialog
 import com.example.ui.components.GmailLoginDialog
+import com.example.ui.components.LanguageSelectionDialog
 import com.example.ui.components.ProjectSwitcherSheet
 import com.example.ui.components.ShareProjectDialog
 import com.example.ui.screens.CashbookScreen
 import com.example.ui.screens.DashboardScreen
+import com.example.ui.screens.OnboardingScreen
 import com.example.ui.screens.PersonDetailScreen
 import com.example.ui.screens.PersonsScreen
 import com.example.ui.screens.ReportsScreen
+import com.example.ui.util.LocalizationManager
 import com.example.ui.viewmodel.HisabViewModel
 
 sealed class NavItem(val route: String, val title: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
@@ -79,6 +84,21 @@ fun MainScreen(
     viewModel: HisabViewModel,
     modifier: Modifier = Modifier
 ) {
+    val isOnboardingCompleted by viewModel.isOnboardingCompleted.collectAsStateWithLifecycle()
+    val currentLanguage by viewModel.currentLanguage.collectAsStateWithLifecycle()
+    val strings = LocalizationManager.getStrings(currentLanguage)
+
+    // Check if onboarding is needed on first launch
+    if (!isOnboardingCompleted) {
+        OnboardingScreen(
+            initialLanguage = currentLanguage,
+            onComplete = { lang, email, name ->
+                viewModel.completeOnboarding(lang, email, name)
+            }
+        )
+        return
+    }
+
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
     val selectedPersonId by viewModel.selectedPersonId.collectAsStateWithLifecycle()
 
@@ -86,6 +106,7 @@ fun MainScreen(
     val allProjects by viewModel.allProjects.collectAsStateWithLifecycle()
     val activeProjectId by viewModel.activeProjectId.collectAsStateWithLifecycle()
     val activeProject by viewModel.activeProject.collectAsStateWithLifecycle()
+    val allEmailGroups by viewModel.allEmailGroups.collectAsStateWithLifecycle()
 
     val dashboardSummary by viewModel.dashboardSummary.collectAsStateWithLifecycle()
     val allPersons by viewModel.allPersons.collectAsStateWithLifecycle()
@@ -103,15 +124,17 @@ fun MainScreen(
     val isShareProjectDialogOpen by viewModel.isShareProjectDialogOpen.collectAsStateWithLifecycle()
     val isGmailLoginDialogOpen by viewModel.isGmailLoginDialogOpen.collectAsStateWithLifecycle()
     val isProjectSwitcherOpen by viewModel.isProjectSwitcherOpen.collectAsStateWithLifecycle()
+    val isEmailGroupDialogOpen by viewModel.isEmailGroupDialogOpen.collectAsStateWithLifecycle()
+    val isLanguageDialogOpen by viewModel.isLanguageDialogOpen.collectAsStateWithLifecycle()
 
     val preselectedPersonForTx by viewModel.transactionDialogPreselectedPerson.collectAsStateWithLifecycle()
     val preselectedTypeForTx by viewModel.transactionDialogPreselectedType.collectAsStateWithLifecycle()
 
     val navItems = listOf(
-        NavItem.Dashboard,
-        NavItem.Parties,
-        NavItem.Cashbook,
-        NavItem.Reports
+        NavItem.Dashboard to strings.tabHome,
+        NavItem.Parties to strings.tabParties,
+        NavItem.Cashbook to strings.tabCashbook,
+        NavItem.Reports to strings.tabReports
     )
 
     // Check if viewing a specific person
@@ -145,7 +168,7 @@ fun MainScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable { viewModel.openProjectSwitcher() }
-                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                                .padding(horizontal = 4.dp, vertical = 4.dp)
                                 .testTag("topbar_project_selector")
                         ) {
                             Icon(
@@ -158,7 +181,7 @@ fun MainScreen(
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = activeProject?.name ?: "Hisab Kitab",
+                                        text = activeProject?.name ?: strings.appName,
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold
                                         ),
@@ -169,7 +192,7 @@ fun MainScreen(
                                         imageVector = Icons.Default.ArrowDropDown,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                                 Text(
@@ -183,6 +206,54 @@ fun MainScreen(
                         }
                     },
                     actions = {
+                        // Language Switcher Icon
+                        IconButton(
+                            onClick = { viewModel.openLanguageDialog() },
+                            modifier = Modifier.testTag("topbar_language_btn")
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = when (currentLanguage.code) {
+                                        "hi" -> "हिं"
+                                        "gu" -> "ગુ"
+                                        else -> "EN"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                            }
+                        }
+
+                        // Email Groups Button
+                        IconButton(
+                            onClick = { viewModel.openEmailGroupDialog() },
+                            modifier = Modifier.testTag("topbar_email_groups_btn")
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Group,
+                                    contentDescription = "Email Groups",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
                         // Share with Gmail Button
                         IconButton(
                             onClick = { viewModel.openShareProjectDialog() },
@@ -200,27 +271,6 @@ fun MainScreen(
                                     contentDescription = "Share via Gmail",
                                     tint = Color(0xFFEA4335),
                                     modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-
-                        // Add Project Button
-                        IconButton(
-                            onClick = { viewModel.openAddProjectDialog() },
-                            modifier = Modifier.testTag("topbar_add_project_btn")
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Add Project",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -266,7 +316,7 @@ fun MainScreen(
                     containerColor = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.testTag("bottom_nav_bar")
                 ) {
-                    navItems.forEachIndexed { index, item ->
+                    navItems.forEachIndexed { index, (item, label) ->
                         val isSelected = selectedTab == index
                         NavigationBarItem(
                             selected = isSelected,
@@ -277,12 +327,12 @@ fun MainScreen(
                             icon = {
                                 Icon(
                                     imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.title
+                                    contentDescription = label
                                 )
                             },
                             label = {
                                 Text(
-                                    text = item.title,
+                                    text = label,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
                             },
@@ -398,9 +448,28 @@ fun MainScreen(
             project = activeProject!!,
             persons = personsWithBalances,
             transactions = allTransactions,
+            emailGroups = allEmailGroups,
             onDismiss = { viewModel.closeShareProjectDialog() },
             onAddSharedEmail = { email -> viewModel.addSharedEmailToActiveProject(email) },
-            onRemoveSharedEmail = { email -> viewModel.removeSharedEmailFromActiveProject(email) }
+            onRemoveSharedEmail = { email -> viewModel.removeSharedEmailFromActiveProject(email) },
+            onOpenGroupManager = { viewModel.openEmailGroupDialog() }
+        )
+    }
+
+    if (isEmailGroupDialogOpen) {
+        EmailGroupDialog(
+            groups = allEmailGroups,
+            onDismiss = { viewModel.closeEmailGroupDialog() },
+            onCreateGroup = { name, emails -> viewModel.createEmailGroup(name, emails) },
+            onDeleteGroup = { group -> viewModel.deleteEmailGroup(group) }
+        )
+    }
+
+    if (isLanguageDialogOpen) {
+        LanguageSelectionDialog(
+            currentLanguage = currentLanguage,
+            onSelectLanguage = { lang -> viewModel.setLanguage(lang) },
+            onDismiss = { viewModel.closeLanguageDialog() }
         )
     }
 

@@ -1,8 +1,10 @@
 package com.example.data.repository
 
+import com.example.data.local.EmailGroupDao
 import com.example.data.local.PersonDao
 import com.example.data.local.ProjectDao
 import com.example.data.local.TransactionDao
+import com.example.data.model.EmailGroup
 import com.example.data.model.Person
 import com.example.data.model.PersonWithBalance
 import com.example.data.model.Project
@@ -14,18 +16,20 @@ import kotlinx.coroutines.flow.combine
 class HisabRepository(
     private val projectDao: ProjectDao,
     private val personDao: PersonDao,
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    private val emailGroupDao: EmailGroupDao
 ) {
     val allProjects: Flow<List<Project>> = projectDao.getAllProjects()
     val allPersons: Flow<List<Person>> = personDao.getAllPersons()
     val allTransactions: Flow<List<Transaction>> = transactionDao.getAllTransactions()
+    val allEmailGroups: Flow<List<EmailGroup>> = emailGroupDao.getAllGroups()
 
     suspend fun ensureDefaultProject(ownerEmail: String = "Maulikpatel1231@gmail.com"): Project {
         val count = projectDao.getProjectsCount()
         if (count == 0) {
             val defaultProject = Project(
-                name = "General Khata (Mera Hisab)",
-                description = "Primary personal / business book",
+                name = "Daily Book (Mera Hisab)",
+                description = "Primary daily personal / business book",
                 ownerEmail = ownerEmail,
                 sharedEmails = "",
                 colorHex = "#0F766E"
@@ -33,7 +37,7 @@ class HisabRepository(
             val newId = projectDao.insertProject(defaultProject)
             return defaultProject.copy(id = newId)
         }
-        return projectDao.getProjectByIdDirect(1L) ?: Project(id = 1L, name = "General Khata (Mera Hisab)")
+        return projectDao.getProjectByIdDirect(1L) ?: Project(id = 1L, name = "Daily Book (Mera Hisab)")
     }
 
     suspend fun insertProject(project: Project): Long {
@@ -67,6 +71,24 @@ class HisabRepository(
         currentList.remove(emailToRemove.trim().lowercase())
         val updated = currentProject.copy(sharedEmails = currentList.joinToString(","))
         projectDao.updateProject(updated)
+    }
+
+    // Email Groups methods
+    suspend fun insertEmailGroup(name: String, memberEmails: String): Long {
+        val group = EmailGroup(name = name.trim(), memberEmails = memberEmails.trim())
+        return emailGroupDao.insertGroup(group)
+    }
+
+    suspend fun updateEmailGroup(group: EmailGroup) {
+        emailGroupDao.updateGroup(group)
+    }
+
+    suspend fun deleteEmailGroup(group: EmailGroup) {
+        emailGroupDao.deleteGroup(group)
+    }
+
+    suspend fun deleteEmailGroupById(id: Long) {
+        emailGroupDao.deleteGroupById(id)
     }
 
     fun getPersonsForProject(projectId: Long): Flow<List<Person>> {

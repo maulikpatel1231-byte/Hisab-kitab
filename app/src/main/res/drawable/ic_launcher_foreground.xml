@@ -4,55 +4,77 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Khata Book Base Shadow -->
+    <!-- Drop Shadow of Daily Book -->
     <path
-        android:pathData="M34,27 h40 a6,6 0 0,1 6,6 v50 a6,6 0 0,1 -6,6 h-40 a6,6 0 0,1 -6,-6 v-50 a6,6 0 0,1 6,-6 z"
-        android:fillColor="#22000000" />
-    <!-- Khata Book Cover -->
+        android:pathData="M32,27 h44 a6,6 0 0,1 6,6 v48 a6,6 0 0,1 -6,6 h-44 a6,6 0 0,1 -6,-6 v-48 a6,6 0 0,1 6,-6 z"
+        android:fillColor="#26000000" />
+    
+    <!-- Outer Book Leather Spine & Pages Base -->
     <path
-        android:pathData="M32,25 h40 a6,6 0 0,1 6,6 v50 a6,6 0 0,1 -6,6 h-40 a6,6 0 0,1 -6,-6 v-50 a6,6 0 0,1 6,-6 z"
+        android:pathData="M30,25 h44 a6,6 0 0,1 6,6 v48 a6,6 0 0,1 -6,6 h-44 a6,6 0 0,1 -6,-6 v-48 a6,6 0 0,1 6,-6 z"
         android:fillColor="#FFFFFF" />
-    <!-- Book Spine (Left border) -->
+    
+    <!-- Left Leather Binding / Spine Accent -->
     <path
-        android:pathData="M26,31 a6,6 0 0,1 6,-6 v62 a6,6 0 0,1 -6,-6 z"
-        android:fillColor="#E2E8F0" />
-    <!-- Book Bookmark Ribbon -->
+        android:pathData="M24,31 a6,6 0 0,1 6,-6 v60 a6,6 0 0,1 -6,-6 z"
+        android:fillColor="#CBD5E1" />
+
+    <!-- Gold Edge Trim on Ledger Book -->
     <path
-        android:pathData="M40,25 v18 l4,-3 l4,3 v-18 z"
-        android:fillColor="#EF4444" />
-    <!-- Horizontal ledger lines inside book -->
-    <path
-        android:pathData="M52,35 h20 M52,42 h16 M34,70 h38 M34,76 h26"
-        android:strokeWidth="2.5"
-        android:strokeColor="#CBD5E1"
+        android:pathData="M78,31 v48 a4,4 0 0,1 -4,4 h-44"
+        android:strokeWidth="2"
+        android:strokeColor="#F59E0B"
         android:strokeLineCap="round" />
-    <!-- Circular Rupee Badge Center -->
+
+    <!-- Red Silk Bookmark Ribbon hanging from top -->
     <path
-        android:pathData="M54,54m-14,0a14,14 0 1,1 28,0a14,14 0 1,1 -28,0"
+        android:pathData="M38,25 v18 l4,-3 l4,3 v-18 z"
+        android:fillColor="#EF4444" />
+
+    <!-- Ruled Ledger Lines inside Daily Book -->
+    <path
+        android:pathData="M50,33 h22 M50,39 h18 M34,68 h40 M34,74 h28"
+        android:strokeWidth="2.2"
+        android:strokeColor="#E2E8F0"
+        android:strokeLineCap="round" />
+
+    <!-- Center Daily Book Golden Medallion Badge -->
+    <path
+        android:pathData="M54,53m-15,0a15,15 0 1,1 30,0a15,15 0 1,1 -30,0"
         android:fillColor="#F59E0B" />
     <path
-        android:pathData="M54,54m-12,0a12,12 0 1,1 24,0a12,12 0 1,1 -24,0"
+        android:pathData="M54,53m-13,0a13,13 0 1,1 26,0a13,13 0 1,1 -26,0"
         android:fillColor="#FBBF24" />
-    <!-- Rupee Symbol ₹ -->
+
+    <!-- Prominent Stylized 'D' / Book Emblem inside Medallion -->
     <path
-        android:pathData="M49,48 h10 M49,51 h10 M49,48 v3 c2.5,0 4.5,1 4.5,3 c0,2 -2,3 -4.5,3 h-1 l6.5,7 h3.5 l-6.5,-7 c2.5,-0.5 4.5,-2 4.5,-4.5 c0,-2.5 -2.2,-4.5 -5,-4.5 z"
+        android:pathData="M48,44 h5 a8,8 0 0,1 8,8 a8,8 0 0,1 -8,8 h-5 z M52,48 v8 h2 a4,4 0 0,0 4,-4 a4,4 0 0,0 -4,-4 z"
         android:fillColor="#78350F" />
-    <!-- Green incoming arrow chip (top right) -->
+
+    <!-- Small Golden Currency Accent -->
     <path
-        android:pathData="M72,24 a5,5 0 0,1 5,5 v6 a5,5 0 0,1 -5,5 a5,5 0 0,1 -5,-5 v-6 a5,5 0 0,1 5,-5 z"
+        android:pathData="M57,51 h3.5 M57,53 h3.5"
+        android:strokeWidth="1.2"
+        android:strokeColor="#78350F"
+        android:strokeLineCap="round" />
+
+    <!-- Green Inflow Badge (+ Cash In) on Top Right -->
+    <path
+        android:pathData="M73,23 a5,5 0 0,1 5,5 v6 a5,5 0 0,1 -5,5 a5,5 0 0,1 -5,-5 v-6 a5,5 0 0,1 5,-5 z"
         android:fillColor="#10B981" />
     <path
-        android:pathData="M72,28 v8 M69.5,33.5 l2.5,2.5 l2.5,-2.5"
+        android:pathData="M73,27 v8 M70.5,32.5 l2.5,2.5 l2.5,-2.5"
         android:strokeWidth="1.8"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
-    <!-- Red outgoing arrow chip (bottom left) -->
+
+    <!-- Red Outflow Badge (- Cash Out) on Bottom Left -->
     <path
-        android:pathData="M24,70 a5,5 0 0,1 5,5 v6 a5,5 0 0,1 -5,5 a5,5 0 0,1 -5,-5 v-6 a5,5 0 0,1 5,-5 z"
+        android:pathData="M23,69 a5,5 0 0,1 5,5 v6 a5,5 0 0,1 -5,5 a5,5 0 0,1 -5,-5 v-6 a5,5 0 0,1 5,-5 z"
         android:fillColor="#EF4444" />
     <path
-        android:pathData="M24,83 v-8 M21.5,77.5 l2.5,-2.5 l2.5,2.5"
+        android:pathData="M23,82 v-8 M20.5,76.5 l2.5,-2.5 l2.5,2.5"
         android:strokeWidth="1.8"
         android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"
