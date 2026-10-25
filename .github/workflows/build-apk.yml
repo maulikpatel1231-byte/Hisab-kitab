@@ -44,9 +44,12 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
-      - name: Create temporary debug keystore
+      - name: Setup persistent debug keystore
         run: |
-          if [ -f "./debug.keystore" ]; then
+          if [ -f "./debug.keystore.base64" ]; then
+            echo "Restoring persistent debug.keystore from debug.keystore.base64..."
+            base64 -d ./debug.keystore.base64 > ./debug.keystore
+          elif [ -f "./debug.keystore" ]; then
             echo "Existing debug.keystore found."
           else
             echo "Generating temporary debug keystore..."
@@ -64,7 +67,7 @@ jobs:
             echo "ERROR: debug.keystore could not be created or found."
             exit 1
           fi
-          echo "Temporary debug.keystore is present."
+          echo "Persistent debug keystore is ready."
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon
