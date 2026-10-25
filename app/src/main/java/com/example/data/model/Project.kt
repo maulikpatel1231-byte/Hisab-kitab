@@ -14,6 +14,14 @@ data class Project(
     val colorHex: String = "#0F766E",
     val createdAt: Long = System.currentTimeMillis()
 ) {
+    val displayName: String
+        get() = name
+            .replace("(Mera Hisab)", "", ignoreCase = true)
+            .replace("(mera hisab)", "", ignoreCase = true)
+            .replace("(Main)", "")
+            .trim()
+            .ifEmpty { "Daily Book" }
+
     fun getSharedEmailList(): List<String> {
         if (sharedEmails.isBlank()) return emptyList()
         return sharedEmails.split(",").map { it.trim() }.filter { it.isNotEmpty() }

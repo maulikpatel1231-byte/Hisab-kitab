@@ -128,19 +128,19 @@ fun PersonDetailScreen(
                     // Share payment reminder
                     IconButton(onClick = {
                         val reminderMessage = if (personWithBalance.isReceivable) {
-                            "Namaste ${person.name} ji, aapka hisab ${FormatUtils.formatCurrency(net)} baaki hai. Kripya payment karein. - Hisab Kitab"
+                            "Hello ${person.name}, balance of ${FormatUtils.formatCurrency(net)} is pending. Please make payment. - Daily Book"
                         } else if (personWithBalance.isPayable) {
-                            "Namaste ${person.name} ji, mera baaki hisab ${FormatUtils.formatCurrency(abs(net))} hai. Jald settle karte hain. - Hisab Kitab"
+                            "Hello ${person.name}, pending balance of ${FormatUtils.formatCurrency(abs(net))} is due. Settle soon. - Daily Book"
                         } else {
-                            "Namaste ${person.name} ji, hamara hisab barabar (settled) hai. Dhanyawad! - Hisab Kitab"
+                            "Hello ${person.name}, our balance is fully settled. Thank you! - Daily Book"
                         }
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, reminderMessage)
                         }
-                        context.startActivity(Intent.createChooser(shareIntent, "Share Hisab Statement"))
+                        context.startActivity(Intent.createChooser(shareIntent, "Share Statement"))
                     }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share Hisab", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Share, contentDescription = "Share Statement", tint = MaterialTheme.colorScheme.primary)
                     }
 
                     IconButton(onClick = { showDeletePersonDialog = true }) {
@@ -153,7 +153,7 @@ fun PersonDetailScreen(
             )
         },
         bottomBar = {
-            // Action Buttons: "+ Maine Diye" and "+ Mujhe Mile"
+            // Action Buttons: You Gave (Cash Out) and You Received (Cash In)
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 8.dp,
@@ -165,7 +165,7 @@ fun PersonDetailScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Maine Diye (You Gave / Cash Out to this person)
+                    // Cash Out to this person
                     Button(
                         onClick = { onAddEntry(TransactionType.OUTGOING) },
                         modifier = Modifier
@@ -182,12 +182,12 @@ fun PersonDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Maine Diye (Gave)",
+                            text = "You Gave (Cash Out)",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }
 
-                    // Mujhe Mile (You Received / Cash In from this person)
+                    // Cash In from this person
                     Button(
                         onClick = { onAddEntry(TransactionType.INCOMING) },
                         modifier = Modifier
@@ -204,7 +204,7 @@ fun PersonDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Mujhe Mile (Got)",
+                            text = "You Got (Cash In)",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }
@@ -242,9 +242,9 @@ fun PersonDetailScreen(
                     ) {
                         Text(
                             text = when {
-                                personWithBalance.isReceivable -> "Aapko Lene Hain (You will get)"
-                                personWithBalance.isPayable -> "Aapko Dene Hain (You will give)"
-                                else -> "Hisab Barabar Hai (Settled)"
+                                personWithBalance.isReceivable -> "You will get"
+                                personWithBalance.isPayable -> "You will give"
+                                else -> "Settled (Zero Balance)"
                             },
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = when {
@@ -283,7 +283,7 @@ fun PersonDetailScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Total Diye (Gave)",
+                                    text = "Total Paid (Out)",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -303,7 +303,7 @@ fun PersonDetailScreen(
 
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = "Total Mile (Got)",
+                                    text = "Total Received (In)",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -326,7 +326,7 @@ fun PersonDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Hisab Entries (${transactions.size})",
+                        text = "Transaction History (${transactions.size})",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }

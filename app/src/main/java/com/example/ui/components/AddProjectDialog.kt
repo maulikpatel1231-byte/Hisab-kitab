@@ -82,7 +82,7 @@ fun AddProjectDialog(
                 }
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Naya Project Jodein (New Project)",
+                    text = "Create New Book",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
             }
@@ -100,8 +100,8 @@ fun AddProjectDialog(
                         projectName = it
                         if (it.isNotBlank()) nameError = false
                     },
-                    label = { Text("Project Name (Khata Naam) *") },
-                    placeholder = { Text("e.g. Dukaan Khata, Home Renovation") },
+                    label = { Text("Book / Project Name *") },
+                    placeholder = { Text("e.g. Daily Cash, Shop, Personal") },
                     leadingIcon = {
                         Icon(Icons.Default.Bookmark, contentDescription = null)
                     },

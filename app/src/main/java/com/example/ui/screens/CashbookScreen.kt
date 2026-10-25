@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,16 +13,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -46,6 +51,7 @@ import com.example.ui.theme.MoneyGreen
 import com.example.ui.theme.MoneyGreenLight
 import com.example.ui.theme.MoneyRed
 import com.example.ui.theme.MoneyRedLight
+import com.example.ui.util.AppStrings
 import com.example.ui.util.FormatUtils
 import java.util.Calendar
 
@@ -58,9 +64,12 @@ fun CashbookScreen(
     onTypeFilterChange: (String) -> Unit,
     dateFilter: String, // ALL, TODAY, THIS_WEEK, THIS_MONTH
     onDateFilterChange: (String) -> Unit,
-    onAddTransaction: () -> Unit,
+    strings: AppStrings,
+    onAddCashIn: () -> Unit,
+    onAddCashOut: () -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     onPersonClick: (Long) -> Unit,
+    onSharePdf: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val now = Calendar.getInstance()
@@ -108,31 +117,56 @@ fun CashbookScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .testTag("cashbook_screen"),
-            contentPadding = PaddingValues(bottom = 90.dp, top = 12.dp, start = 16.dp, end = 16.dp),
+            contentPadding = PaddingValues(bottom = 110.dp, top = 12.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Search Input
+            // Search Input & PDF Button Row
             item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    placeholder = { Text("Search transactions, notes, parties...") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        placeholder = { Text(strings.searchPlaceholder) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = "Search")
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { onSearchQueryChange("") }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                                }
                             }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("search_tx_input"),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true
+                    )
+
+                    // Quick PDF Share Icon Button
+                    Surface(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { onSharePdf() }
+                            .testTag("btn_cashbook_share_pdf"),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.PictureAsPdf,
+                                contentDescription = "Share PDF",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("search_tx_input"),
-                    shape = RoundedCornerShape(14.dp),
-                    singleLine = true
-                )
+                    }
+                }
             }
 
             // Type Filter Chips
@@ -144,12 +178,12 @@ fun CashbookScreen(
                     FilterChip(
                         selected = typeFilter == "ALL",
                         onClick = { onTypeFilterChange("ALL") },
-                        label = { Text("All (${transactions.size})", fontSize = 12.sp) }
+                        label = { Text("${strings.filterAll} (${transactions.size})", fontSize = 12.sp) }
                     )
                     FilterChip(
                         selected = typeFilter == "INCOMING",
                         onClick = { onTypeFilterChange("INCOMING") },
-                        label = { Text("Cash In (Aaya)", fontSize = 12.sp) },
+                        label = { Text(strings.filterCashIn, fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MoneyGreenLight,
                             selectedLabelColor = MoneyGreen
@@ -158,7 +192,7 @@ fun CashbookScreen(
                     FilterChip(
                         selected = typeFilter == "OUTGOING",
                         onClick = { onTypeFilterChange("OUTGOING") },
-                        label = { Text("Cash Out (Gaya)", fontSize = 12.sp) },
+                        label = { Text(strings.filterCashOut, fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MoneyRedLight,
                             selectedLabelColor = MoneyRed
@@ -200,7 +234,7 @@ fun CashbookScreen(
                     ) {
                         Column {
                             Text(
-                                text = "Total In (+)",
+                                text = strings.cashIn,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -213,7 +247,7 @@ fun CashbookScreen(
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "Total Out (-)",
+                                text = strings.cashOut,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -226,7 +260,7 @@ fun CashbookScreen(
 
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "Net Balance",
+                                text = strings.netBalance,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -269,7 +303,7 @@ fun CashbookScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Aap '+ Entry' daba kar cash in ya cash out likh sakte hain",
+                            text = "Tap '${strings.btnCashIn}' or '${strings.btnCashOut}' below to add a transaction.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -286,19 +320,52 @@ fun CashbookScreen(
             }
         }
 
-        // FAB to Record Transaction
-        ExtendedFloatingActionButton(
-            onClick = onAddTransaction,
+        // Dual Action Bottom FAB Bar
+        Surface(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 96.dp, end = 16.dp)
-                .testTag("fab_add_transaction"),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = Color.White
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
         ) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(modifier = Modifier.size(6.dp))
-            Text("Record Entry", fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // + Cash In (Incoming Entry)
+                Button(
+                    onClick = onAddCashIn,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .testTag("cashbook_fab_cash_in"),
+                    colors = ButtonDefaults.buttonColors(containerColor = MoneyGreen),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.ArrowDownward, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(strings.btnCashIn, fontWeight = FontWeight.Bold)
+                }
+
+                // - Cash Out (Outgoing Entry)
+                Button(
+                    onClick = onAddCashOut,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .testTag("cashbook_fab_cash_out"),
+                    colors = ButtonDefaults.buttonColors(containerColor = MoneyRed),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.ArrowUpward, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(strings.btnCashOut, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }

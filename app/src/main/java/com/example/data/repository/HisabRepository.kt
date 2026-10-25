@@ -25,10 +25,24 @@ class HisabRepository(
     val allEmailGroups: Flow<List<EmailGroup>> = emailGroupDao.getAllGroups()
 
     suspend fun ensureDefaultProject(ownerEmail: String = "Maulikpatel1231@gmail.com"): Project {
+        // Automatically clean up (Mera Hisab) from any previously saved project in existing database
+        val existingProjects = projectDao.getAllProjectsDirect()
+        for (proj in existingProjects) {
+            if (proj.name.contains("Mera Hisab", ignoreCase = true) || proj.name.contains("(Main)")) {
+                val cleanedName = proj.name
+                    .replace("(Mera Hisab)", "", ignoreCase = true)
+                    .replace("(mera hisab)", "", ignoreCase = true)
+                    .replace("(Main)", "")
+                    .trim()
+                    .ifEmpty { "Daily Book" }
+                projectDao.updateProject(proj.copy(name = cleanedName))
+            }
+        }
+
         val count = projectDao.getProjectsCount()
         if (count == 0) {
             val defaultProject = Project(
-                name = "Daily Book (Mera Hisab)",
+                name = "Daily Book",
                 description = "Primary daily personal / business book",
                 ownerEmail = ownerEmail,
                 sharedEmails = "",
@@ -37,7 +51,8 @@ class HisabRepository(
             val newId = projectDao.insertProject(defaultProject)
             return defaultProject.copy(id = newId)
         }
-        return projectDao.getProjectByIdDirect(1L) ?: Project(id = 1L, name = "Daily Book (Mera Hisab)")
+        val defaultP = projectDao.getProjectByIdDirect(1L) ?: Project(id = 1L, name = "Daily Book")
+        return defaultP.copy(name = defaultP.displayName)
     }
 
     suspend fun insertProject(project: Project): Long {

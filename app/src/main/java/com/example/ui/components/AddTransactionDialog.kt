@@ -1,7 +1,6 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,9 +56,7 @@ import com.example.data.model.PaymentMode
 import com.example.data.model.Person
 import com.example.data.model.TransactionType
 import com.example.ui.theme.MoneyGreen
-import com.example.ui.theme.MoneyGreenLight
 import com.example.ui.theme.MoneyRed
-import com.example.ui.theme.MoneyRedLight
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -67,6 +64,7 @@ fun AddTransactionDialog(
     persons: List<Person>,
     preselectedPerson: Person? = null,
     preselectedType: TransactionType? = null,
+    isEnglish: Boolean = true,
     onDismiss: () -> Unit,
     onSave: (
         personId: Long?,
@@ -85,11 +83,20 @@ fun AddTransactionDialog(
     var selectedPerson by remember { mutableStateOf(preselectedPerson) }
     var isPersonDropdownExpanded by remember { mutableStateOf(false) }
 
-    val incomingCategories = listOf("Customer Payment", "Daily Sale", "Udhaar Wapsi", "Salary", "Advance", "General Income")
-    val outgoingCategories = listOf("Supplier Payment", "Udhaar Diya", "Purchase", "Rent", "Electricity / Bill", "Tea / Food", "Salary Given", "General Expense")
+    val incomingCategories = if (isEnglish) {
+        listOf("Sales", "Customer Payment", "Salary", "Investment", "Service Fee", "General Income")
+    } else {
+        listOf("बिक्री (Sales)", "ग्राहक से मिला", "वेतन (Salary)", "निवेश", "सर्विस चार्ज", "अन्य आय")
+    }
+
+    val outgoingCategories = if (isEnglish) {
+        listOf("Purchases", "Vendor Payment", "Rent", "Electricity / Utilities", "Food & Meals", "Salary Paid", "Transport & Fuel", "General Expense")
+    } else {
+        listOf("खरीदारी (Purchase)", "सप्लायर पेमेंट", "दुकान किराया", "बिजली / बिल", "चाय व नाश्ता", "वेतन दिया", "किराया / पेट्रोल", "अन्य खर्चे")
+    }
 
     var selectedCategory by remember {
-        mutableStateOf(if (selectedType == TransactionType.INCOMING) "Customer Payment" else "Supplier Payment")
+        mutableStateOf(if (selectedType == TransactionType.INCOMING) incomingCategories.first() else outgoingCategories.first())
     }
     var selectedPaymentMode by remember { mutableStateOf(PaymentMode.CASH) }
     var note by remember { mutableStateOf("") }
@@ -101,8 +108,13 @@ fun AddTransactionDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Record Entry (Hisab Likhein)",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                text = if (isEnglish) {
+                    if (isIncoming) "+ Cash In (Income)" else "- Cash Out (Expense)"
+                } else {
+                    if (isIncoming) "+ आया (Cash In)" else "- गया (Cash Out)"
+                },
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = if (isIncoming) MoneyGreen else MoneyRed
             )
         },
         text = {
@@ -121,7 +133,7 @@ fun AddTransactionDialog(
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Cash In (Aaya / Mile)
+                    // Cash In
                     Surface(
                         modifier = Modifier
                             .weight(1f)
@@ -148,7 +160,7 @@ fun AddTransactionDialog(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Aaya (Cash In)",
+                                text = if (isEnglish) "Cash In" else "आया (Cash In)",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = if (isIncoming) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -157,7 +169,7 @@ fun AddTransactionDialog(
                         }
                     }
 
-                    // Cash Out (Gaya / Diye)
+                    // Cash Out
                     Surface(
                         modifier = Modifier
                             .weight(1f)
@@ -184,7 +196,7 @@ fun AddTransactionDialog(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Gaya (Cash Out)",
+                                text = if (isEnglish) "Cash Out" else "गया (Cash Out)",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = if (!isIncoming) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -205,7 +217,7 @@ fun AddTransactionDialog(
                             amountError = false
                         }
                     },
-                    label = { Text("Amount (Rashi) *") },
+                    label = { Text(if (isEnglish) "Amount *" else "रकम (Amount) *") },
                     placeholder = { Text("0") },
                     prefix = { Text("₹ ", fontWeight = FontWeight.Bold) },
                     isError = amountError,
@@ -246,9 +258,9 @@ fun AddTransactionDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Person Selection (Optional Particular Person)
+                // Person Selection (Optional)
                 Text(
-                    text = "Select Particular Person (Particular vyakti jodein):",
+                    text = if (isEnglish) "Party / Person (Optional):" else "व्यक्ति / पार्टी (वैकल्पिक):",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -256,7 +268,7 @@ fun AddTransactionDialog(
 
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
-                        value = selectedPerson?.name ?: "No Person (General Entry)",
+                        value = selectedPerson?.name ?: (if (isEnglish) "None (General Entry)" else "कोई नहीं (सामान्य एंट्री)"),
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = {
@@ -286,7 +298,7 @@ fun AddTransactionDialog(
                         onDismissRequest = { isPersonDropdownExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("None (General Income/Expense)") },
+                            text = { Text(if (isEnglish) "None (General Entry)" else "कोई नहीं (सामान्य एंट्री)") },
                             onClick = {
                                 selectedPerson = null
                                 isPersonDropdownExpanded = false
@@ -315,7 +327,7 @@ fun AddTransactionDialog(
 
                 // Category chips
                 Text(
-                    text = "Category (Kategori):",
+                    text = if (isEnglish) "Category:" else "श्रेणी (Category):",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -329,11 +341,7 @@ fun AddTransactionDialog(
                         FilterChip(
                             selected = selectedCategory == cat,
                             onClick = { selectedCategory = cat },
-                            label = { Text(cat, fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = if (isIncoming) MoneyGreenLight else MoneyRedLight,
-                                selectedLabelColor = if (isIncoming) MoneyGreen else MoneyRed
-                            )
+                            label = { Text(cat, fontSize = 11.sp) }
                         )
                     }
                 }
@@ -342,7 +350,7 @@ fun AddTransactionDialog(
 
                 // Payment Mode
                 Text(
-                    text = "Payment Mode:",
+                    text = if (isEnglish) "Payment Mode:" else "भुगतान का माध्यम (Payment Mode):",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -366,8 +374,8 @@ fun AddTransactionDialog(
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("Note / Bill No. / Description") },
-                    placeholder = { Text("e.g. Bill #42, Paid via UPI") },
+                    label = { Text(if (isEnglish) "Note / Bill No. / Description" else "नोट / बिल नंबर / विवरण") },
+                    placeholder = { Text(if (isEnglish) "e.g. Bill #42, Paid via UPI" else "उदा. बिल नंबर, UPI द्वारा") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("tx_note_input"),
@@ -398,12 +406,19 @@ fun AddTransactionDialog(
                 ),
                 modifier = Modifier.testTag("save_tx_button")
             ) {
-                Text(if (isIncoming) "Save Cash In" else "Save Cash Out", color = Color.White)
+                Text(
+                    text = if (isEnglish) {
+                        if (isIncoming) "Save Cash In" else "Save Cash Out"
+                    } else {
+                        if (isIncoming) "जमा करें (Save In)" else "दर्ज करें (Save Out)"
+                    },
+                    color = Color.White
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(if (isEnglish) "Cancel" else "रद्द करें")
             }
         }
     )

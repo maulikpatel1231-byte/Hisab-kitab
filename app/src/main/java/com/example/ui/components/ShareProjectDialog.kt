@@ -95,7 +95,7 @@ fun ShareProjectDialog(
     fun generateReportText(): String {
         return buildString {
             appendLine("📋 *DAILY BOOK PROJECT STATEMENT* 📋")
-            appendLine("Project: ${project.name}")
+            appendLine("Project: ${project.displayName}")
             if (project.description.isNotBlank()) appendLine("Description: ${project.description}")
             appendLine("Owner: ${project.ownerEmail}")
             appendLine("Date: ${FormatUtils.formatDate(System.currentTimeMillis())}")
@@ -108,11 +108,10 @@ fun ShareProjectDialog(
             val totalReceivable = persons.filter { it.isReceivable }.sumOf { it.netBalance }
             val totalPayable = persons.filter { it.isPayable }.sumOf { abs(it.netBalance) }
 
-            appendLine("💰 Total Cash In (Aaya): ${FormatUtils.formatCurrency(totalIn)}")
-            appendLine("💸 Total Cash Out (Gaya): ${FormatUtils.formatCurrency(totalOut)}")
+            appendLine("💰 Total Cash In: ${FormatUtils.formatCurrency(totalIn)}")
+            appendLine("💸 Total Cash Out: ${FormatUtils.formatCurrency(totalOut)}")
             appendLine("💼 Net Balance: ${FormatUtils.formatCurrency(net)}")
-            appendLine("🟢 Market Lena Hai (Receivable): ${FormatUtils.formatCurrency(totalReceivable)}")
-            appendLine("🔴 Market Dena Hai (Payable): ${FormatUtils.formatCurrency(totalPayable)}")
+            appendLine("📝 Total Transactions: ${transactions.size}")
             appendLine("=========================================")
 
             appendLine("\n👥 *PARTIES / PERSON ACCOUNTS:*")
@@ -157,7 +156,7 @@ fun ShareProjectDialog(
         onAddSharedEmail(validEmails.first())
 
         val reportBody = generateReportText()
-        val subject = "[Daily Book] ${project.name} - Statement & Data"
+        val subject = "[Daily Book] ${project.displayName} - Statement & Data"
 
         val mailIntent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:${validEmails.first()}")

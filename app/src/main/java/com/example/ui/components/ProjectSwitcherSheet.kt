@@ -87,7 +87,7 @@ fun ProjectSwitcherSheet(
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Projects & Khatas (${projects.size})",
+                        text = "Projects & Books (${projects.size})",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 }
@@ -159,7 +159,7 @@ fun ProjectSwitcherSheet(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            text = project.name,
+                                            text = project.displayName,
                                             style = MaterialTheme.typography.titleMedium.copy(
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
                                             ),

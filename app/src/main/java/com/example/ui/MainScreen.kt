@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Group
@@ -47,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,13 +71,14 @@ import com.example.ui.screens.PersonDetailScreen
 import com.example.ui.screens.PersonsScreen
 import com.example.ui.screens.ReportsScreen
 import com.example.ui.util.LocalizationManager
+import com.example.ui.util.PdfReportGenerator
 import com.example.ui.viewmodel.HisabViewModel
 
 sealed class NavItem(val route: String, val title: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
     object Dashboard : NavItem("dashboard", "Home", Icons.Filled.Home, Icons.Outlined.Home)
-    object Parties : NavItem("parties", "Parties", Icons.Filled.Group, Icons.Outlined.Group)
     object Cashbook : NavItem("cashbook", "Cashbook", Icons.Filled.MenuBook, Icons.Outlined.MenuBook)
-    object Reports : NavItem("reports", "Reports", Icons.Filled.Analytics, Icons.Outlined.Analytics)
+    object Reports : NavItem("reports", "Reports & PDF", Icons.Filled.Analytics, Icons.Outlined.Analytics)
+    object Parties : NavItem("parties", "Parties", Icons.Filled.Group, Icons.Outlined.Group)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,6 +87,7 @@ fun MainScreen(
     viewModel: HisabViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val isOnboardingCompleted by viewModel.isOnboardingCompleted.collectAsStateWithLifecycle()
     val currentLanguage by viewModel.currentLanguage.collectAsStateWithLifecycle()
     val strings = LocalizationManager.getStrings(currentLanguage)
@@ -130,11 +134,15 @@ fun MainScreen(
     val preselectedPersonForTx by viewModel.transactionDialogPreselectedPerson.collectAsStateWithLifecycle()
     val preselectedTypeForTx by viewModel.transactionDialogPreselectedType.collectAsStateWithLifecycle()
 
+    fun shareAllTransactionsPdf() {
+        PdfReportGenerator.generateAndSharePdf(context, activeProject, allTransactions)
+    }
+
     val navItems = listOf(
         NavItem.Dashboard to strings.tabHome,
-        NavItem.Parties to strings.tabParties,
         NavItem.Cashbook to strings.tabCashbook,
-        NavItem.Reports to strings.tabReports
+        NavItem.Reports to strings.tabReports,
+        NavItem.Parties to strings.tabParties
     )
 
     // Check if viewing a specific person
@@ -181,7 +189,7 @@ fun MainScreen(
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = activeProject?.name ?: strings.appName,
+                                        text = activeProject?.displayName ?: strings.appName,
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold
                                         ),
@@ -206,7 +214,28 @@ fun MainScreen(
                         }
                     },
                     actions = {
-                        // Language Switcher Icon
+                        // 1. One-tap Share PDF Button
+                        IconButton(
+                            onClick = { shareAllTransactionsPdf() },
+                            modifier = Modifier.testTag("topbar_share_pdf_btn")
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PictureAsPdf,
+                                    contentDescription = "Share PDF",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        // 2. Language Switcher Icon
                         IconButton(
                             onClick = { viewModel.openLanguageDialog() },
                             modifier = Modifier.testTag("topbar_language_btn")
@@ -233,7 +262,7 @@ fun MainScreen(
                             }
                         }
 
-                        // Email Groups Button
+                        // 3. Email Groups Button
                         IconButton(
                             onClick = { viewModel.openEmailGroupDialog() },
                             modifier = Modifier.testTag("topbar_email_groups_btn")
@@ -242,19 +271,19 @@ fun MainScreen(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Group,
                                     contentDescription = "Email Groups",
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
 
-                        // Share with Gmail Button
+                        // 4. Share with Gmail Button
                         IconButton(
                             onClick = { viewModel.openShareProjectDialog() },
                             modifier = Modifier.testTag("topbar_share_gmail_btn")
@@ -275,7 +304,7 @@ fun MainScreen(
                             }
                         }
 
-                        // User Gmail Avatar / Account Switcher
+                        // 5. User Gmail Avatar / Account Switcher
                         IconButton(
                             onClick = { viewModel.openGmailLoginDialog() },
                             modifier = Modifier.testTag("topbar_account_btn")
@@ -354,6 +383,7 @@ fun MainScreen(
                         activeProject = activeProject,
                         persons = personsWithBalances,
                         recentTransactions = allTransactions,
+                        strings = strings,
                         onAddCashIn = {
                             viewModel.openAddTransactionDialog(type = TransactionType.INCOMING)
                         },
@@ -362,26 +392,17 @@ fun MainScreen(
                         },
                         onAddPerson = { viewModel.openAddPersonDialog() },
                         onPersonClick = { personId -> viewModel.openPersonDetail(personId) },
-                        onViewAllPersons = { viewModel.setSelectedTab(1) },
-                        onViewAllCashbook = { viewModel.setSelectedTab(2) },
+                        onViewAllPersons = { viewModel.setSelectedTab(3) },
+                        onViewAllCashbook = { viewModel.setSelectedTab(1) },
                         onDeleteTransaction = { tx -> viewModel.deleteTransaction(tx) },
                         onSeedSampleData = { viewModel.seedSampleData() },
                         onSwitchProject = { viewModel.openProjectSwitcher() },
                         onShareProject = { viewModel.openShareProjectDialog() },
-                        onAddNewProject = { viewModel.openAddProjectDialog() }
+                        onAddNewProject = { viewModel.openAddProjectDialog() },
+                        onSharePdf = { shareAllTransactionsPdf() }
                     )
 
-                    1 -> PersonsScreen(
-                        persons = personsWithBalances,
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { q -> viewModel.setSearchQuery(q) },
-                        activeFilter = personFilter,
-                        onFilterChange = { f -> viewModel.setPersonFilter(f) },
-                        onPersonClick = { personId -> viewModel.openPersonDetail(personId) },
-                        onAddPerson = { viewModel.openAddPersonDialog() }
-                    )
-
-                    2 -> CashbookScreen(
+                    1 -> CashbookScreen(
                         transactions = allTransactions,
                         searchQuery = searchQuery,
                         onSearchQueryChange = { q -> viewModel.setSearchQuery(q) },
@@ -389,15 +410,34 @@ fun MainScreen(
                         onTypeFilterChange = { f -> viewModel.setCashbookTypeFilter(f) },
                         dateFilter = cashbookDateFilter,
                         onDateFilterChange = { f -> viewModel.setCashbookDateFilter(f) },
-                        onAddTransaction = { viewModel.openAddTransactionDialog() },
+                        strings = strings,
+                        onAddCashIn = {
+                            viewModel.openAddTransactionDialog(type = TransactionType.INCOMING)
+                        },
+                        onAddCashOut = {
+                            viewModel.openAddTransactionDialog(type = TransactionType.OUTGOING)
+                        },
                         onDeleteTransaction = { tx -> viewModel.deleteTransaction(tx) },
-                        onPersonClick = { personId -> viewModel.openPersonDetail(personId) }
+                        onPersonClick = { personId -> viewModel.openPersonDetail(personId) },
+                        onSharePdf = { shareAllTransactionsPdf() }
                     )
 
-                    3 -> ReportsScreen(
+                    2 -> ReportsScreen(
                         summary = dashboardSummary,
+                        project = activeProject,
+                        transactions = allTransactions,
+                        strings = strings,
+                        onSharePdf = { shareAllTransactionsPdf() }
+                    )
+
+                    3 -> PersonsScreen(
                         persons = personsWithBalances,
-                        transactions = allTransactions
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { q -> viewModel.setSearchQuery(q) },
+                        activeFilter = personFilter,
+                        onFilterChange = { f -> viewModel.setPersonFilter(f) },
+                        onPersonClick = { personId -> viewModel.openPersonDetail(personId) },
+                        onAddPerson = { viewModel.openAddPersonDialog() }
                     )
                 }
             }
@@ -419,6 +459,7 @@ fun MainScreen(
             persons = allPersons,
             preselectedPerson = preselectedPersonForTx,
             preselectedType = preselectedTypeForTx,
+            isEnglish = currentLanguage == com.example.ui.util.AppLanguage.ENGLISH,
             onDismiss = { viewModel.closeAddTransactionDialog() },
             onSave = { personId, personName, type, amount, category, paymentMode, note ->
                 viewModel.addTransaction(

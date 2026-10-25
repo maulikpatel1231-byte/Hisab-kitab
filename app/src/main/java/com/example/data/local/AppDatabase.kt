@@ -44,7 +44,7 @@ abstract class AppDatabase : RoomDatabase() {
                                 INSTANCE?.projectDao()?.insertProject(
                                     Project(
                                         id = 1L,
-                                        name = "Daily Book (Mera Hisab)",
+                                        name = "Daily Book",
                                         description = "Primary daily personal / business book",
                                         ownerEmail = "Maulikpatel1231@gmail.com",
                                         sharedEmails = "",

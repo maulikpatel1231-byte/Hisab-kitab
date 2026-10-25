@@ -137,7 +137,7 @@ fun AddPersonDialog(
                         FilterChip(
                             selected = selectedType == type,
                             onClick = { selectedType = type },
-                            label = { Text("${type.hindiLabel} (${type.label})", fontSize = 12.sp) },
+                            label = { Text(type.label, fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                 selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -146,11 +146,11 @@ fun AddPersonDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Opening Balance Section
                 Text(
-                    text = "Opening Balance (Purana Baaki Hisab - Optional):",
+                    text = "Opening Balance (Optional):",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -21,21 +21,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,11 +49,11 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.PersonWithBalance
 import com.example.data.model.Project
 import com.example.data.model.Transaction
-import com.example.ui.components.PersonItemCard
 import com.example.ui.components.SummaryCard
 import com.example.ui.components.TransactionItemCard
 import com.example.ui.theme.MoneyGreen
 import com.example.ui.theme.MoneyRed
+import com.example.ui.util.AppStrings
 import com.example.ui.viewmodel.DashboardSummary
 
 @Composable
@@ -64,6 +62,7 @@ fun DashboardScreen(
     activeProject: Project?,
     persons: List<PersonWithBalance>,
     recentTransactions: List<Transaction>,
+    strings: AppStrings,
     onAddCashIn: () -> Unit,
     onAddCashOut: () -> Unit,
     onAddPerson: () -> Unit,
@@ -75,6 +74,7 @@ fun DashboardScreen(
     onSwitchProject: () -> Unit,
     onShareProject: () -> Unit,
     onAddNewProject: () -> Unit,
+    onSharePdf: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val defaultColor = MaterialTheme.colorScheme.primary
@@ -97,7 +97,7 @@ fun DashboardScreen(
         contentPadding = PaddingValues(bottom = 90.dp, top = 8.dp, start = 16.dp, end = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Project Selector & Gmail Sharing Banner
+        // Project Selector & Actions Banner
         item {
             Card(
                 modifier = Modifier
@@ -123,29 +123,62 @@ fun DashboardScreen(
                                 .background(projectColor.copy(alpha = 0.15f))
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(projectColor)
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription = null,
+                                tint = projectColor,
+                                modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = activeProject?.name ?: "Main Project",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = projectColor
+                                text = activeProject?.displayName ?: strings.appName,
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                                maxLines = 1
                             )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "Switch project",
+                                imageVector = Icons.Default.SwapHoriz,
+                                contentDescription = "Switch book",
                                 tint = projectColor,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
 
-                        // Right actions: Share with Gmail & + New Project
+                        // Right actions: Share PDF & + New Book
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            // Share with Gmail button
+                            // PDF Share Button
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { onSharePdf() }
+                                    .testTag("btn_dashboard_pdf"),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PictureAsPdf,
+                                        contentDescription = "PDF Report",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "PDF",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
+                            }
+
+                            // Share with Gmail / Group
                             Surface(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
@@ -159,13 +192,13 @@ fun DashboardScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Email,
-                                        contentDescription = "Share Gmail",
+                                        contentDescription = "Share",
                                         tint = Color(0xFFEA4335),
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Share Gmail",
+                                        text = "Email",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFFEA4335)
@@ -174,7 +207,7 @@ fun DashboardScreen(
                                 }
                             }
 
-                            // + Project
+                            // + Project / Book
                             Surface(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
@@ -188,13 +221,13 @@ fun DashboardScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Add,
-                                        contentDescription = "Add project",
+                                        contentDescription = "Add book",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Text(
-                                        text = "Project",
+                                        text = strings.btnAddProject,
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -204,112 +237,75 @@ fun DashboardScreen(
                             }
                         }
                     }
-
-                    // Shared members indicator if any
-                    val sharedEmails = activeProject?.getSharedEmailList() ?: emptyList()
-                    if (sharedEmails.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Email,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Shared with: ${sharedEmails.joinToString(", ")}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                        }
-                    }
                 }
             }
         }
 
-        // Financial Balance Card
+        // Financial Balance Card (Pure Incoming / Outgoing / Net Balance)
         item {
-            SummaryCard(summary = summary)
+            SummaryCard(
+                summary = summary,
+                strings = strings,
+                onSharePdf = onSharePdf
+            )
         }
 
-        // Quick Action Buttons
+        // Primary Entry Action Buttons: Incoming (Cash In) & Outgoing (Cash Out)
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Add Cash In
+                // Add Cash In (Incoming Entry)
                 Button(
                     onClick = onAddCashIn,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp)
+                        .height(50.dp)
                         .testTag("dashboard_btn_cash_in"),
                     colors = ButtonDefaults.buttonColors(containerColor = MoneyGreen),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ArrowDownward,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "+ Cash In",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        text = strings.btnCashIn,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 }
 
-                // Add Cash Out
+                // Add Cash Out (Outgoing Entry)
                 Button(
                     onClick = onAddCashOut,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp)
+                        .height(50.dp)
                         .testTag("dashboard_btn_cash_out"),
                     colors = ButtonDefaults.buttonColors(containerColor = MoneyRed),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ArrowUpward,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "- Cash Out",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-
-                // Add Person
-                OutlinedButton(
-                    onClick = onAddPerson,
-                    modifier = Modifier
-                        .height(48.dp)
-                        .testTag("dashboard_btn_add_person"),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PersonAdd,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "+ Person",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        text = strings.btnCashOut,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }
         }
 
-        // Empty state seed prompt if no persons or transactions yet
-        if (summary.totalPersonsCount == 0 && summary.totalTransactionsCount == 0) {
+        // Empty state seed prompt if no transactions yet
+        if (summary.totalTransactionsCount == 0) {
             item {
                 Surface(
                     modifier = Modifier
@@ -336,13 +332,13 @@ fun DashboardScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Swagat Hai Daily Book me!",
+                            text = strings.emptyBookTitle,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Abhi is project me koi hisab darj nahi hai. Naya vyakti/khata jodein ya sample entries load karein.",
+                            text = strings.emptyBookDesc,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                             lineHeight = 18.sp
@@ -353,47 +349,15 @@ fun DashboardScreen(
                             modifier = Modifier.testTag("btn_load_sample_data"),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Text("Load Sample Entries (Try Demo)")
+                            Text(strings.tryDemoBtn)
                         }
                     }
                 }
             }
         }
 
-        // Persons with Pending Balances Section
-        val pendingPersons = persons.filter { !it.isSettled }.take(3)
-        if (pendingPersons.isNotEmpty()) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Pending Khata (Baaki Hisab)",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                    TextButton(onClick = onViewAllPersons) {
-                        Text("View All (${persons.size})")
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-
-            items(pendingPersons) { personWithBalance ->
-                PersonItemCard(
-                    personWithBalance = personWithBalance,
-                    onClick = { onPersonClick(personWithBalance.person.id) }
-                )
-            }
-        }
-
         // Recent Transactions Section
-        val recentList = recentTransactions.take(5)
+        val recentList = recentTransactions.take(8)
         if (recentList.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -403,11 +367,11 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Recent Entries (Haal hi ka hisab)",
+                        text = "${strings.recentCashFlow} (${recentTransactions.size})",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     TextButton(onClick = onViewAllCashbook) {
-                        Text("Cashbook")
+                        Text(strings.viewCashbook)
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = null,
@@ -423,6 +387,34 @@ fun DashboardScreen(
                     onDelete = onDeleteTransaction,
                     onPersonClick = { personId -> onPersonClick(personId) }
                 )
+            }
+
+            // Bottom Full PDF Export Bar
+            item {
+                Spacer(modifier = Modifier.height(6.dp))
+                Button(
+                    onClick = onSharePdf,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("btn_bottom_share_pdf"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PictureAsPdf,
+                        contentDescription = "PDF Statement",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = strings.sharePdfBtn,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
         }
     }

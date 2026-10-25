@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,11 +15,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -34,17 +35,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.theme.MoneyGreen
 import com.example.ui.theme.MoneyGreenLight
 import com.example.ui.theme.MoneyRed
 import com.example.ui.theme.MoneyRedLight
+import com.example.ui.util.AppStrings
 import com.example.ui.util.FormatUtils
 import com.example.ui.viewmodel.DashboardSummary
 
 @Composable
 fun SummaryCard(
     summary: DashboardSummary,
+    strings: AppStrings,
+    onSharePdf: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -62,7 +65,7 @@ fun SummaryCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Top: Net Cash Balance in Hand
+            // Top: Net Cash Balance
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -70,7 +73,7 @@ fun SummaryCard(
             ) {
                 Column {
                     Text(
-                        text = "Net Cash Balance (Hath me)",
+                        text = strings.netBalance,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -79,47 +82,47 @@ fun SummaryCard(
                         text = FormatUtils.formatCurrency(summary.netCashBalance),
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 26.sp
+                            fontSize = 28.sp
                         ),
                         color = if (summary.netCashBalance >= 0) MaterialTheme.colorScheme.primary else MoneyRed
                     )
                 }
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.AccountBalanceWallet,
                         contentDescription = "Wallet Balance",
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Middle: Cash In (Aaya) & Cash Out (Gaya)
+            // Middle: Cash In & Cash Out ONLY
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Cash In (Aaya / Mile)
+                // Cash In
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
-                    color = MoneyGreenLight.copy(alpha = 0.6f)
+                    color = MoneyGreenLight.copy(alpha = 0.7f)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(34.dp)
                                 .clip(CircleShape)
                                 .background(MoneyGreen),
                             contentAlignment = Alignment.Center
@@ -134,32 +137,32 @@ fun SummaryCard(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "Aaya (Cash In)",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = strings.cashIn,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = Color(0xFF14532D)
                             )
                             Text(
                                 text = FormatUtils.formatCurrency(summary.totalCashIn),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = Color(0xFF15803D)
                             )
                         }
                     }
                 }
 
-                // Cash Out (Gaya / Diye)
+                // Cash Out
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
-                    color = MoneyRedLight.copy(alpha = 0.6f)
+                    color = MoneyRedLight.copy(alpha = 0.7f)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(34.dp)
                                 .clip(CircleShape)
                                 .background(MoneyRed),
                             contentAlignment = Alignment.Center
@@ -174,13 +177,13 @@ fun SummaryCard(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "Gaya (Cash Out)",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = strings.cashOut,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = Color(0xFF7F1D1D)
                             )
                             Text(
                                 text = FormatUtils.formatCurrency(summary.totalCashOut),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = Color(0xFFB91C1C)
                             )
                         }
@@ -188,51 +191,47 @@ fun SummaryCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Bottom: Market Udhaar / Receivable & Payable overview
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Lena Hai
-                Column {
-                    Text(
-                        text = "Market Lena Hai (Receivable)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = FormatUtils.formatCurrency(summary.totalReceivable),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MoneyGreen
-                    )
-                }
-
-                Box(
+            // PDF Share Quick Action bar
+            if (onSharePdf != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
                     modifier = Modifier
-                        .height(28.dp)
-                        .width(1.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant)
-                )
-
-                // Dena Hai
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Market Dena Hai (Payable)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = FormatUtils.formatCurrency(summary.totalPayable),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MoneyRed
-                    )
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onSharePdf() }
+                        .testTag("btn_summary_share_pdf"),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.PictureAsPdf,
+                                contentDescription = "PDF Report",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = strings.sharePdfBtn,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }
