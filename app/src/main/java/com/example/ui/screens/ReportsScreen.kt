@@ -317,15 +317,15 @@ fun ReportsScreen(
             OutlinedButton(
                 onClick = {
                     val summaryText = buildString {
-                        appendLine("📊 *DAILY BOOK - CASH STATEMENT* 📊")
-                        appendLine("Project: ${project?.name ?: "Daily Book"}")
+                        appendLine("📊 *HISAB KITAB - CASH STATEMENT* 📊")
+                        appendLine("Project: ${project?.name ?: "Hisab Kitab"}")
                         appendLine("----------------------------------------")
                         appendLine("💰 Total Cash In: ${FormatUtils.formatCurrency(summary.totalCashIn)}")
                         appendLine("💸 Total Cash Out: ${FormatUtils.formatCurrency(summary.totalCashOut)}")
                         appendLine("💼 Net Balance: ${FormatUtils.formatCurrency(summary.netCashBalance)}")
                         appendLine("📝 Total Transactions: ${transactions.size}")
                         appendLine("----------------------------------------")
-                        appendLine("Shared via Daily Book Android App")
+                        appendLine("Shared via Hisab Kitab Android App")
                     }
                     val sendIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"

@@ -97,7 +97,7 @@ object PdfReportGenerator {
             val dateShortFormat = SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault())
             val nowFormatted = dateFormat.format(Date())
 
-            val projectName = project?.displayName ?: "Daily Book"
+            val projectName = project?.displayName ?: "Hisab Kitab"
             val ownerEmail = project?.ownerEmail ?: ""
 
             // Calculate pagination
@@ -120,7 +120,7 @@ object PdfReportGenerator {
                 var currentY = MARGIN
 
                 // Top Header Branding (Every page)
-                canvas.drawText("DAILY BOOK", MARGIN, currentY + 16f, titlePaint)
+                canvas.drawText("HISAB KITAB", MARGIN, currentY + 16f, titlePaint)
                 val pageIndicator = "Page $pageNumber of $totalPages"
                 canvas.drawText(pageIndicator, PAGE_WIDTH - MARGIN - 70f, currentY + 14f, subtitlePaint)
 
@@ -284,7 +284,7 @@ object PdfReportGenerator {
                 // Page Footer
                 val footerY = PAGE_HEIGHT - MARGIN + 10f
                 canvas.drawLine(MARGIN, footerY - 14f, PAGE_WIDTH - MARGIN, footerY - 14f, linePaint)
-                canvas.drawText("Daily Book - Smart Digital Ledger App", MARGIN, footerY, subtitlePaint)
+                canvas.drawText("Hisab Kitab - Smart Digital Ledger App", MARGIN, footerY, subtitlePaint)
                 canvas.drawText(
                     "Total Entries: ${transactions.size}",
                     PAGE_WIDTH - MARGIN - 90f,
@@ -297,7 +297,7 @@ object PdfReportGenerator {
 
             // Save PDF File to Cache
             val cacheDir = context.cacheDir
-            val fileName = "DailyBook_Statement_${System.currentTimeMillis()}.pdf"
+            val fileName = "HisabKitab_Statement_${System.currentTimeMillis()}.pdf"
             val file = File(cacheDir, fileName)
             val outputStream = FileOutputStream(file)
             pdfDoc.writeTo(outputStream)
@@ -315,15 +315,15 @@ object PdfReportGenerator {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "Daily Book - Transaction Statement")
+                putExtra(Intent.EXTRA_SUBJECT, "Hisab Kitab - Transaction Statement")
                 putExtra(
                     Intent.EXTRA_TEXT,
-                    "Attached is the transaction statement of ${project?.name ?: "Daily Book"} with ${transactions.size} entries.\nTotal In: ${FormatUtils.formatCurrency(totalIn)}\nTotal Out: ${FormatUtils.formatCurrency(totalOut)}\nNet Balance: ${FormatUtils.formatCurrency(netBalance)}"
+                    "Attached is the transaction statement of ${project?.name ?: "Hisab Kitab"} with ${transactions.size} entries.\nTotal In: ${FormatUtils.formatCurrency(totalIn)}\nTotal Out: ${FormatUtils.formatCurrency(totalOut)}\nNet Balance: ${FormatUtils.formatCurrency(netBalance)}"
                 )
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
-            context.startActivity(Intent.createChooser(shareIntent, "Share Daily Book PDF via"))
+            context.startActivity(Intent.createChooser(shareIntent, "Share Hisab Kitab PDF via"))
             return file
         } catch (e: Exception) {
             e.printStackTrace()

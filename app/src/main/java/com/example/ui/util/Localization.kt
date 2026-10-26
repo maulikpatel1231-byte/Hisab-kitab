@@ -50,9 +50,9 @@ object LocalizationManager {
     fun getStrings(language: AppLanguage): AppStrings {
         return when (language) {
             AppLanguage.ENGLISH -> AppStrings(
-                appName = "Daily Book",
-                welcomeTitle = "Welcome to Daily Book",
-                welcomeSubtitle = "Smart daily ledger, cashbook and expense tracking book",
+                appName = "Hisab Kitab",
+                welcomeTitle = "Welcome to Hisab Kitab",
+                welcomeSubtitle = "Smart daily hisab kitab, cashbook and expense tracking book",
                 selectLanguage = "Select Your Preferred Language",
                 languageFixedNote = "This language can be changed anytime in settings",
                 tabHome = "Home",
@@ -78,7 +78,7 @@ object LocalizationManager {
                 incomeBreakdown = "Income Breakdown",
                 sharePdfBtn = "Share PDF Statement",
                 shareSummaryBtn = "Share Text Summary",
-                emptyBookTitle = "Welcome to Daily Book!",
+                emptyBookTitle = "Welcome to Hisab Kitab!",
                 emptyBookDesc = "No transactions recorded yet. Tap '+ Cash In' or '- Cash Out' to add your first transaction.",
                 tryDemoBtn = "Load Sample Entries",
                 recentCashFlow = "Recent Cash Flow",
@@ -90,8 +90,8 @@ object LocalizationManager {
             )
 
             AppLanguage.HINDI -> AppStrings(
-                appName = "डेली बुक",
-                welcomeTitle = "डेली बुक में स्वागत है",
+                appName = "हिसाब किताब",
+                welcomeTitle = "हिसाब किताब में स्वागत है",
                 welcomeSubtitle = "दैनिक आय-व्यय और रोकड़ बही का सबसे आसान हिसाब",
                 selectLanguage = "अपनी पसंदीदा भाषा चुनें",
                 languageFixedNote = "यह भाषा बाद में भी सेटिंग्स से बदली जा सकती है",
@@ -118,7 +118,7 @@ object LocalizationManager {
                 incomeBreakdown = "आय का विवरण (Cash In)",
                 sharePdfBtn = "PDF स्टेटमेंट शेयर करें",
                 shareSummaryBtn = "टेक्स्ट समरी शेयर करें",
-                emptyBookTitle = "डेली बुक में स्वागत है!",
+                emptyBookTitle = "हिसाब किताब में स्वागत है!",
                 emptyBookDesc = "अभी इस बही में कोई एंट्री नहीं है। ऊपर दिए गए '+ आया' या '- गया' बटन से पहली एंट्री करें।",
                 tryDemoBtn = "सैंपल एंट्रीज लोड करें",
                 recentCashFlow = "हाल ही का कैश फ्लो",
@@ -130,8 +130,8 @@ object LocalizationManager {
             )
 
             AppLanguage.GUJARATI -> AppStrings(
-                appName = "ડેઇલી બુક",
-                welcomeTitle = "ડેઇલી બુકમાં સ્વાગત છે",
+                appName = "હિસાબ કિતાબ",
+                welcomeTitle = "હિસાબ કિતાબમાં સ્વાગત છે",
                 welcomeSubtitle = "દૈનિક આવક-જાવક અને રોકડમેળનો સૌથી સરળ હિસાબ",
                 selectLanguage = "તમારી ભાષા પસંદ કરો",
                 languageFixedNote = "આ ભાષા પછીથી પણ સેટિંગ્સમાંથી બદલી શકાય છે",
@@ -158,7 +158,7 @@ object LocalizationManager {
                 incomeBreakdown = "આવક અહેવાલ (Cash In)",
                 sharePdfBtn = "PDF સ્ટેટમેન્ટ શેર કરો",
                 shareSummaryBtn = "ટેક્સ્ટ સમરી શેર કરો",
-                emptyBookTitle = "ડેઇલી બુકમાં સ્વાગત છે!",
+                emptyBookTitle = "હિસાબ કિતાબમાં સ્વાગત છે!",
                 emptyBookDesc = "હજી સુધી કોઈ એન્ટ્રી નથી. ઉપરના '+ આવક' અથવા '- જાવક' બટનથી નવી એન્ટ્રી કરો.",
                 tryDemoBtn = "સેમ્પલ એન્ટ્રીઝ લોડ કરો",
                 recentCashFlow = "તાજેતરનો રોકડ પ્રવાહ",

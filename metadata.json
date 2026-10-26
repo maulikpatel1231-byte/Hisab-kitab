@@ -1,6 +1,6 @@
 {
-  "name": "Daily Book",
-  "description": "Smart daily khata, cashbook, and personal expense tracking book with multi-project and team sharing.",
+  "name": "Hisab Kitab",
+  "description": "Smart daily hisab kitab, cashbook, and personal expense tracking book with multi-project and team sharing.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

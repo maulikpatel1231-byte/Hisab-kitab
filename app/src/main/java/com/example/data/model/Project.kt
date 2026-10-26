@@ -20,7 +20,7 @@ data class Project(
             .replace("(mera hisab)", "", ignoreCase = true)
             .replace("(Main)", "")
             .trim()
-            .ifEmpty { "Daily Book" }
+            .ifEmpty { "Hisab Kitab" }
 
     fun getSharedEmailList(): List<String> {
         if (sharedEmails.isBlank()) return emptyList()

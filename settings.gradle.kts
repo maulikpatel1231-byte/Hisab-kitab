@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Daily Book"
+rootProject.name = "Hisab Kitab"
 
 include(":app")

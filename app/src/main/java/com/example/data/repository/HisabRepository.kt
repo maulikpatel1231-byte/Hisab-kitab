@@ -28,13 +28,15 @@ class HisabRepository(
         // Automatically clean up (Mera Hisab) from any previously saved project in existing database
         val existingProjects = projectDao.getAllProjectsDirect()
         for (proj in existingProjects) {
-            if (proj.name.contains("Mera Hisab", ignoreCase = true) || proj.name.contains("(Main)")) {
-                val cleanedName = proj.name
-                    .replace("(Mera Hisab)", "", ignoreCase = true)
-                    .replace("(mera hisab)", "", ignoreCase = true)
-                    .replace("(Main)", "")
-                    .trim()
-                    .ifEmpty { "Daily Book" }
+            if (proj.name.contains("Mera Hisab", ignoreCase = true) || proj.name.contains("(Main)") || proj.name == "Daily Book") {
+                val cleanedName = if (proj.name == "Daily Book") "Hisab Kitab" else {
+                    proj.name
+                        .replace("(Mera Hisab)", "", ignoreCase = true)
+                        .replace("(mera hisab)", "", ignoreCase = true)
+                        .replace("(Main)", "")
+                        .trim()
+                        .ifEmpty { "Hisab Kitab" }
+                }
                 projectDao.updateProject(proj.copy(name = cleanedName))
             }
         }
@@ -42,7 +44,7 @@ class HisabRepository(
         val count = projectDao.getProjectsCount()
         if (count == 0) {
             val defaultProject = Project(
-                name = "Daily Book",
+                name = "Hisab Kitab",
                 description = "Primary daily personal / business book",
                 ownerEmail = ownerEmail,
                 sharedEmails = "",
@@ -51,7 +53,7 @@ class HisabRepository(
             val newId = projectDao.insertProject(defaultProject)
             return defaultProject.copy(id = newId)
         }
-        val defaultP = projectDao.getProjectByIdDirect(1L) ?: Project(id = 1L, name = "Daily Book")
+        val defaultP = projectDao.getProjectByIdDirect(1L) ?: Project(id = 1L, name = "Hisab Kitab")
         return defaultP.copy(name = defaultP.displayName)
     }
 

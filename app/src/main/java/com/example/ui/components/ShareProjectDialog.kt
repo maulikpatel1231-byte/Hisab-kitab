@@ -127,7 +127,7 @@ fun ShareProjectDialog(
             }
 
             appendLine("\n=========================================")
-            appendLine("Shared via Daily Book Android App")
+            appendLine("Shared via Hisab Kitab Android App")
         }
     }
 
@@ -142,7 +142,7 @@ fun ShareProjectDialog(
         onAddSharedEmail(validEmails.first())
 
         val reportBody = generateReportText()
-        val subject = "[Daily Book] ${project.displayName} - Statement & Data"
+        val subject = "[Hisab Kitab] ${project.displayName} - Statement & Data"
 
         val mailIntent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:${validEmails.first()}")
