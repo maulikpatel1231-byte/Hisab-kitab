@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -29,9 +30,6 @@ data class DashboardSummary(
     val totalCashIn: Double = 0.0,
     val totalCashOut: Double = 0.0,
     val netCashBalance: Double = 0.0,
-    val totalReceivable: Double = 0.0,
-    val totalPayable: Double = 0.0,
-    val totalPersonsCount: Int = 0,
     val totalTransactionsCount: Int = 0
 )
 
@@ -105,9 +103,13 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
     private val _cashbookDateFilter = MutableStateFlow("ALL")
     val cashbookDateFilter: StateFlow<String> = _cashbookDateFilter.asStateFlow()
 
-    // Dialog & Action States
-    private val _isAddPersonDialogOpen = MutableStateFlow(false)
-    val isAddPersonDialogOpen: StateFlow<Boolean> = _isAddPersonDialogOpen.asStateFlow()
+    val recentPersonNames: StateFlow<List<String>> = allTransactions.map { txs ->
+        txs.mapNotNull { it.personName }
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(15)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isAddTransactionDialogOpen = MutableStateFlow(false)
     val isAddTransactionDialogOpen: StateFlow<Boolean> = _isAddTransactionDialogOpen.asStateFlow()
@@ -138,7 +140,7 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
 
     // Dashboard Summary reactive state
     val dashboardSummary: StateFlow<DashboardSummary> =
-        combine(allTransactions, personsWithBalances) { txs, persons ->
+        allTransactions.map { txs ->
             var cashIn = 0.0
             var cashOut = 0.0
 
@@ -150,23 +152,10 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
-            var totalRec = 0.0
-            var totalPay = 0.0
-            for (p in persons) {
-                if (p.netBalance > 0.009) {
-                    totalRec += p.netBalance
-                } else if (p.netBalance < -0.009) {
-                    totalPay += kotlin.math.abs(p.netBalance)
-                }
-            }
-
             DashboardSummary(
                 totalCashIn = cashIn,
                 totalCashOut = cashOut,
                 netCashBalance = cashIn - cashOut,
-                totalReceivable = totalRec,
-                totalPayable = totalPay,
-                totalPersonsCount = persons.size,
                 totalTransactionsCount = txs.size
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardSummary())
@@ -324,14 +313,6 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
         _cashbookDateFilter.value = filter
     }
 
-    fun openAddPersonDialog() {
-        _isAddPersonDialogOpen.value = true
-    }
-
-    fun closeAddPersonDialog() {
-        _isAddPersonDialogOpen.value = false
-    }
-
     fun openAddProjectDialog() {
         _isAddProjectDialogOpen.value = true
     }
@@ -413,7 +394,6 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
                 createdAt = System.currentTimeMillis()
             )
             repository.insertPerson(person, openingBalance, isReceivable)
-            closeAddPersonDialog()
         }
     }
 
@@ -473,96 +453,78 @@ class HisabViewModel(application: Application) : AndroidViewModel(application) {
             val now = System.currentTimeMillis()
             val dayMillis = 24 * 60 * 60 * 1000L
 
-            // 1. Ramesh Kumar (Customer)
-            val p1Id = repository.insertPerson(
-                Person(
-                    projectId = currentProjectId,
-                    name = "Ramesh Kumar",
-                    phone = "+91 98765 43210",
-                    type = PersonType.CUSTOMER.name,
-                    notes = "Regular grocery buyer"
-                ),
-                openingBalance = 1500.0,
-                isReceivable = true
-            )
+            // 1. Counter Cash Collection (Cash In)
             repository.insertTransaction(
                 Transaction(
                     projectId = currentProjectId,
-                    personId = p1Id,
-                    personName = "Ramesh Kumar",
+                    personId = null,
+                    personName = "Daily Counter Sales",
                     type = TransactionType.INCOMING.name,
-                    amount = 500.0,
-                    category = "Customer Payment",
-                    paymentMode = "UPI",
-                    note = "GPay received for bill #104",
-                    timestamp = now - (dayMillis / 2)
+                    amount = 5500.0,
+                    category = "Sales",
+                    paymentMode = "Cash",
+                    note = "Day shift cash counter collection",
+                    timestamp = now
                 )
             )
 
-            // 2. Sharma Ji Wholesale (Supplier)
-            val p2Id = repository.insertPerson(
-                Person(
-                    projectId = currentProjectId,
-                    name = "Sharma Ji Wholesale",
-                    phone = "+91 91234 56789",
-                    type = PersonType.SUPPLIER.name,
-                    notes = "Goods vendor"
-                ),
-                openingBalance = 3200.0,
-                isReceivable = false
-            )
+            // 2. Customer Online Payment (Cash In)
             repository.insertTransaction(
                 Transaction(
                     projectId = currentProjectId,
-                    personId = p2Id,
+                    personId = null,
+                    personName = "Ramesh Kumar",
+                    type = TransactionType.INCOMING.name,
+                    amount = 1800.0,
+                    category = "Customer Payment",
+                    paymentMode = "UPI",
+                    note = "Received via Google Pay",
+                    timestamp = now - (dayMillis / 3)
+                )
+            )
+
+            // 3. Wholesale Goods Purchase (Cash Out)
+            repository.insertTransaction(
+                Transaction(
+                    projectId = currentProjectId,
+                    personId = null,
                     personName = "Sharma Ji Wholesale",
                     type = TransactionType.OUTGOING.name,
-                    amount = 1200.0,
-                    category = "Vendor Payment",
+                    amount = 2400.0,
+                    category = "Purchases",
                     paymentMode = "Bank Transfer",
-                    note = "NEFT part payment done",
+                    note = "Stock reorder bill #890",
+                    timestamp = now - dayMillis
+                )
+            )
+
+            // 4. Shop Electricity Bill (Cash Out)
+            repository.insertTransaction(
+                Transaction(
+                    projectId = currentProjectId,
+                    personId = null,
+                    personName = "Electricity Board",
+                    type = TransactionType.OUTGOING.name,
+                    amount = 750.0,
+                    category = "Electricity / Utilities",
+                    paymentMode = "UPI",
+                    note = "Monthly power bill paid",
                     timestamp = now - (dayMillis * 2)
                 )
             )
 
-            // 3. Amit Verma (Friend)
-            repository.insertPerson(
-                Person(
-                    projectId = currentProjectId,
-                    name = "Amit Verma",
-                    phone = "+91 99887 76655",
-                    type = PersonType.FRIEND.name,
-                    notes = "College friend"
-                ),
-                openingBalance = 2000.0,
-                isReceivable = true
-            )
-
-            // General cash flow entries
+            // 5. Tea & Refreshment (Cash Out)
             repository.insertTransaction(
                 Transaction(
                     projectId = currentProjectId,
                     personId = null,
-                    personName = null,
-                    type = TransactionType.INCOMING.name,
-                    amount = 4500.0,
-                    category = "Daily Sales",
-                    paymentMode = "Cash",
-                    note = "Counter cash collection",
-                    timestamp = now - (dayMillis * 3)
-                )
-            )
-            repository.insertTransaction(
-                Transaction(
-                    projectId = currentProjectId,
-                    personId = null,
-                    personName = null,
+                    personName = "Chai Corner",
                     type = TransactionType.OUTGOING.name,
-                    amount = 800.0,
-                    category = "Shop Electricity",
-                    paymentMode = "UPI",
-                    note = "Monthly power bill paid",
-                    timestamp = now - (dayMillis * 4)
+                    amount = 140.0,
+                    category = "Food & Meals",
+                    paymentMode = "Cash",
+                    note = "Tea and snacks for visitors",
+                    timestamp = now - (dayMillis * 3)
                 )
             )
         }

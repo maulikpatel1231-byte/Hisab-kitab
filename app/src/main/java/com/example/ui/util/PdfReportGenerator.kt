@@ -229,12 +229,18 @@ object PdfReportGenerator {
 
                     // 3. Description & Party
                     val desc = buildString {
-                        append(tx.category)
                         if (!tx.personName.isNullOrBlank()) {
-                            append(" (${tx.personName})")
+                            val prefix = if (isIncoming) "From: " else "To: "
+                            append(prefix)
+                            append(tx.personName)
+                            if (tx.category.isNotBlank() && tx.category != "General") {
+                                append(" • ${tx.category}")
+                            }
+                        } else {
+                            append(tx.category)
                         }
                     }
-                    val truncatedDesc = if (desc.length > 32) desc.take(30) + ".." else desc
+                    val truncatedDesc = if (desc.length > 34) desc.take(32) + ".." else desc
                     canvas.drawText(truncatedDesc, colDesc, rowTextY, textBoldPaint)
 
                     // Optional Note underneath if space

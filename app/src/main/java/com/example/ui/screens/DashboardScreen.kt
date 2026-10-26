@@ -60,14 +60,10 @@ import com.example.ui.viewmodel.DashboardSummary
 fun DashboardScreen(
     summary: DashboardSummary,
     activeProject: Project?,
-    persons: List<PersonWithBalance>,
     recentTransactions: List<Transaction>,
     strings: AppStrings,
     onAddCashIn: () -> Unit,
     onAddCashOut: () -> Unit,
-    onAddPerson: () -> Unit,
-    onPersonClick: (Long) -> Unit,
-    onViewAllPersons: () -> Unit,
     onViewAllCashbook: () -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     onSeedSampleData: () -> Unit,
@@ -384,8 +380,7 @@ fun DashboardScreen(
             items(recentList) { tx ->
                 TransactionItemCard(
                     transaction = tx,
-                    onDelete = onDeleteTransaction,
-                    onPersonClick = { personId -> onPersonClick(personId) }
+                    onDelete = onDeleteTransaction
                 )
             }
 

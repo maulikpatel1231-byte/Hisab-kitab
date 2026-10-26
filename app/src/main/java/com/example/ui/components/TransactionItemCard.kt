@@ -101,17 +101,20 @@ fun TransactionItemCard(
             Column(modifier = Modifier.weight(1f)) {
                 // Title (Person name or Category)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (transaction.personName != null) {
+                    if (!transaction.personName.isNullOrBlank()) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = "Person",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = accentColor,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = transaction.personName,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            text = if (isIncoming) "From: ${transaction.personName}" else "To: ${transaction.personName}",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )

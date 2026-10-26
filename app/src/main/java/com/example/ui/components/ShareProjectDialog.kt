@@ -75,7 +75,7 @@ import kotlin.math.abs
 @Composable
 fun ShareProjectDialog(
     project: Project,
-    persons: List<PersonWithBalance>,
+    persons: List<PersonWithBalance> = emptyList(),
     transactions: List<Transaction>,
     emailGroups: List<EmailGroup>,
     onDismiss: () -> Unit,
@@ -105,36 +105,22 @@ fun ShareProjectDialog(
             val totalOut = transactions.filter { it.type == TransactionType.OUTGOING.name }.sumOf { it.amount }
             val net = totalIn - totalOut
 
-            val totalReceivable = persons.filter { it.isReceivable }.sumOf { it.netBalance }
-            val totalPayable = persons.filter { it.isPayable }.sumOf { abs(it.netBalance) }
-
             appendLine("💰 Total Cash In: ${FormatUtils.formatCurrency(totalIn)}")
             appendLine("💸 Total Cash Out: ${FormatUtils.formatCurrency(totalOut)}")
-            appendLine("💼 Net Balance: ${FormatUtils.formatCurrency(net)}")
+            appendLine("💼 Net Cash Balance: ${FormatUtils.formatCurrency(net)}")
             appendLine("📝 Total Transactions: ${transactions.size}")
             appendLine("=========================================")
 
-            appendLine("\n👥 *PARTIES / PERSON ACCOUNTS:*")
-            if (persons.isEmpty()) {
-                appendLine("No parties added yet.")
-            } else {
-                persons.forEach { p ->
-                    val status = when {
-                        p.isReceivable -> "Lena Hai: ${FormatUtils.formatCurrency(p.netBalance)}"
-                        p.isPayable -> "Dena Hai: ${FormatUtils.formatCurrency(abs(p.netBalance))}"
-                        else -> "Settled (Nill)"
-                    }
-                    appendLine("• ${p.person.name} (${p.person.type}) -> $status")
-                }
-            }
-
-            appendLine("\n📝 *RECENT TRANSACTIONS:*")
+            appendLine("\n📝 *RECORDED TRANSACTIONS:*")
             if (transactions.isEmpty()) {
                 appendLine("No entries recorded.")
             } else {
-                transactions.take(15).forEach { tx ->
-                    val sign = if (tx.type == TransactionType.INCOMING.name) "+" else "-"
-                    val personTag = if (tx.personName != null) " [${tx.personName}]" else ""
+                transactions.take(25).forEach { tx ->
+                    val isIncoming = tx.type == TransactionType.INCOMING.name
+                    val sign = if (isIncoming) "+" else "-"
+                    val personTag = if (!tx.personName.isNullOrBlank()) {
+                        if (isIncoming) " [From: ${tx.personName}]" else " [To: ${tx.personName}]"
+                    } else ""
                     appendLine("• $sign${FormatUtils.formatCurrency(tx.amount)} | ${tx.category}$personTag | Mode: ${tx.paymentMode} | ${FormatUtils.formatDateShort(tx.timestamp)}")
                     if (tx.note.isNotBlank()) appendLine("   Note: ${tx.note}")
                 }

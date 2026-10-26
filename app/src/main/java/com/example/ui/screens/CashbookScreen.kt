@@ -68,7 +68,7 @@ fun CashbookScreen(
     onAddCashIn: () -> Unit,
     onAddCashOut: () -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
-    onPersonClick: (Long) -> Unit,
+    onPersonClick: ((Long) -> Unit)? = null,
     onSharePdf: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -314,7 +314,7 @@ fun CashbookScreen(
                     TransactionItemCard(
                         transaction = tx,
                         onDelete = onDeleteTransaction,
-                        onPersonClick = { personId -> onPersonClick(personId) }
+                        onPersonClick = onPersonClick
                     )
                 }
             }

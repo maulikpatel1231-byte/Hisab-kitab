@@ -56,7 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.TransactionType
-import com.example.ui.components.AddPersonDialog
 import com.example.ui.components.AddProjectDialog
 import com.example.ui.components.AddTransactionDialog
 import com.example.ui.components.EmailGroupDialog
@@ -67,8 +66,6 @@ import com.example.ui.components.ShareProjectDialog
 import com.example.ui.screens.CashbookScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.OnboardingScreen
-import com.example.ui.screens.PersonDetailScreen
-import com.example.ui.screens.PersonsScreen
 import com.example.ui.screens.ReportsScreen
 import com.example.ui.util.LocalizationManager
 import com.example.ui.util.PdfReportGenerator
@@ -78,7 +75,6 @@ sealed class NavItem(val route: String, val title: String, val selectedIcon: Ima
     object Dashboard : NavItem("dashboard", "Home", Icons.Filled.Home, Icons.Outlined.Home)
     object Cashbook : NavItem("cashbook", "Cashbook", Icons.Filled.MenuBook, Icons.Outlined.MenuBook)
     object Reports : NavItem("reports", "Reports & PDF", Icons.Filled.Analytics, Icons.Outlined.Analytics)
-    object Parties : NavItem("parties", "Parties", Icons.Filled.Group, Icons.Outlined.Group)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,7 +100,6 @@ fun MainScreen(
     }
 
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
-    val selectedPersonId by viewModel.selectedPersonId.collectAsStateWithLifecycle()
 
     val userSession by viewModel.userSession.collectAsStateWithLifecycle()
     val allProjects by viewModel.allProjects.collectAsStateWithLifecycle()
@@ -118,11 +113,9 @@ fun MainScreen(
     val allTransactions by viewModel.allTransactions.collectAsStateWithLifecycle()
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val personFilter by viewModel.personFilter.collectAsStateWithLifecycle()
     val cashbookTypeFilter by viewModel.cashbookTypeFilter.collectAsStateWithLifecycle()
     val cashbookDateFilter by viewModel.cashbookDateFilter.collectAsStateWithLifecycle()
 
-    val isAddPersonDialogOpen by viewModel.isAddPersonDialogOpen.collectAsStateWithLifecycle()
     val isAddTransactionDialogOpen by viewModel.isAddTransactionDialogOpen.collectAsStateWithLifecycle()
     val isAddProjectDialogOpen by viewModel.isAddProjectDialogOpen.collectAsStateWithLifecycle()
     val isShareProjectDialogOpen by viewModel.isShareProjectDialogOpen.collectAsStateWithLifecycle()
@@ -131,7 +124,7 @@ fun MainScreen(
     val isEmailGroupDialogOpen by viewModel.isEmailGroupDialogOpen.collectAsStateWithLifecycle()
     val isLanguageDialogOpen by viewModel.isLanguageDialogOpen.collectAsStateWithLifecycle()
 
-    val preselectedPersonForTx by viewModel.transactionDialogPreselectedPerson.collectAsStateWithLifecycle()
+    val recentPersonNames by viewModel.recentPersonNames.collectAsStateWithLifecycle()
     val preselectedTypeForTx by viewModel.transactionDialogPreselectedType.collectAsStateWithLifecycle()
 
     fun shareAllTransactionsPdf() {
@@ -141,32 +134,10 @@ fun MainScreen(
     val navItems = listOf(
         NavItem.Dashboard to strings.tabHome,
         NavItem.Cashbook to strings.tabCashbook,
-        NavItem.Reports to strings.tabReports,
-        NavItem.Parties to strings.tabParties
+        NavItem.Reports to strings.tabReports
     )
 
-    // Check if viewing a specific person
-    val activePersonWithBalance = selectedPersonId?.let { id ->
-        personsWithBalances.find { it.person.id == id }
-    }
-
-    if (activePersonWithBalance != null) {
-        val personTransactions = allTransactions.filter { it.personId == activePersonWithBalance.person.id }
-        PersonDetailScreen(
-            personWithBalance = activePersonWithBalance,
-            transactions = personTransactions,
-            onBack = { viewModel.closePersonDetail() },
-            onAddEntry = { type ->
-                viewModel.openAddTransactionDialog(
-                    person = activePersonWithBalance.person,
-                    type = type
-                )
-            },
-            onDeletePerson = { person -> viewModel.deletePerson(person) },
-            onDeleteTransaction = { tx -> viewModel.deleteTransaction(tx) }
-        )
-    } else {
-        Scaffold(
+    Scaffold(
             topBar = {
                 TopAppBar(
                     title = {
@@ -381,7 +352,6 @@ fun MainScreen(
                     0 -> DashboardScreen(
                         summary = dashboardSummary,
                         activeProject = activeProject,
-                        persons = personsWithBalances,
                         recentTransactions = allTransactions,
                         strings = strings,
                         onAddCashIn = {
@@ -390,9 +360,6 @@ fun MainScreen(
                         onAddCashOut = {
                             viewModel.openAddTransactionDialog(type = TransactionType.OUTGOING)
                         },
-                        onAddPerson = { viewModel.openAddPersonDialog() },
-                        onPersonClick = { personId -> viewModel.openPersonDetail(personId) },
-                        onViewAllPersons = { viewModel.setSelectedTab(3) },
                         onViewAllCashbook = { viewModel.setSelectedTab(1) },
                         onDeleteTransaction = { tx -> viewModel.deleteTransaction(tx) },
                         onSeedSampleData = { viewModel.seedSampleData() },
@@ -418,50 +385,28 @@ fun MainScreen(
                             viewModel.openAddTransactionDialog(type = TransactionType.OUTGOING)
                         },
                         onDeleteTransaction = { tx -> viewModel.deleteTransaction(tx) },
-                        onPersonClick = { personId -> viewModel.openPersonDetail(personId) },
                         onSharePdf = { shareAllTransactionsPdf() }
                     )
 
-                    2 -> ReportsScreen(
+                    else -> ReportsScreen(
                         summary = dashboardSummary,
                         project = activeProject,
                         transactions = allTransactions,
                         strings = strings,
                         onSharePdf = { shareAllTransactionsPdf() }
                     )
-
-                    3 -> PersonsScreen(
-                        persons = personsWithBalances,
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { q -> viewModel.setSearchQuery(q) },
-                        activeFilter = personFilter,
-                        onFilterChange = { f -> viewModel.setPersonFilter(f) },
-                        onPersonClick = { personId -> viewModel.openPersonDetail(personId) },
-                        onAddPerson = { viewModel.openAddPersonDialog() }
-                    )
                 }
             }
         }
-    }
 
     // Dialogs
-    if (isAddPersonDialogOpen) {
-        AddPersonDialog(
-            onDismiss = { viewModel.closeAddPersonDialog() },
-            onSave = { name, phone, type, notes, openingBalance, isReceivable ->
-                viewModel.addPerson(name, phone, type, notes, openingBalance, isReceivable)
-            }
-        )
-    }
-
     if (isAddTransactionDialogOpen) {
         AddTransactionDialog(
-            persons = allPersons,
-            preselectedPerson = preselectedPersonForTx,
+            recentPersonNames = recentPersonNames,
             preselectedType = preselectedTypeForTx,
             isEnglish = currentLanguage == com.example.ui.util.AppLanguage.ENGLISH,
             onDismiss = { viewModel.closeAddTransactionDialog() },
-            onSave = { personId, personName, type, amount, category, paymentMode, note ->
+            onSave = { personId, personName, type, amount, category, paymentMode, note, timestamp ->
                 viewModel.addTransaction(
                     personId = personId,
                     personName = personName,
@@ -469,7 +414,8 @@ fun MainScreen(
                     amount = amount,
                     category = category,
                     paymentMode = paymentMode,
-                    note = note
+                    note = note,
+                    timestamp = timestamp
                 )
             }
         )
